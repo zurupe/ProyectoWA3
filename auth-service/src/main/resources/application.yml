@@ -97,7 +97,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create-drop #update?
     show-sql: false
 
   security:

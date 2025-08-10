@@ -1,0 +1,6 @@
+com\proyecto\pedidoservice\config\SecurityConfig.class
+com\proyecto\pedidoservice\service\PedidoService.class
+com\proyecto\pedidoservice\PedidoServiceApplication.class
+com\proyecto\pedidoservice\model\Pedido.class
+com\proyecto\pedidoservice\controller\PedidoController.class
+com\proyecto\pedidoservice\repository\PedidoRepository.class

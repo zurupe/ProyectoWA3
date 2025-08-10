@@ -1,0 +1,5 @@
+com\proyecto\clienteservice\dto\ClienteRequest.class
+com\proyecto\clienteservice\config\OpenApiConfig.class
+com\proyecto\clienteservice\repository\ClienteRepository.class
+com\proyecto\clienteservice\entity\Cliente.class
+com\proyecto\clienteservice\controller\HealthController.class
