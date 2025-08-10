@@ -1,4 +1,12 @@
-# ProyectoWA3
+
+
+Sistema distribuido para el seguimiento y gestión de pedidos con microservicios, autenticación OAuth2 y frontend Angular.
+
+# Cambios recientes
+- Se agregó el endpoint GET `/api/pedidos` para listar todos los pedidos.
+- Se implementó el método `obtenerTodosLosPedidos()` en `PedidoService`.
+- Se añadieron archivos `.gitignore` y `.dockerignore` para exclusión de archivos temporales y de build.
+
 # Estructura del Proyecto: Sistema de Seguimiento de Pedidos
 
 ```
@@ -49,3 +57,19 @@ sistema-seguimiento-pedidos/
 │       └── presentacion.pptx     # Presentación en PowerPoint
 └── README.md                      # Instrucciones del proyecto
 ```
+
+# Uso rápido de la API de pedidos
+
+## Listar todos los pedidos
+```bash
+curl -X GET http://localhost:8083/api/pedidos -H "Authorization: Bearer <TOKEN>"
+```
+
+## Crear un pedido
+```bash
+curl -X POST http://localhost:8083/api/pedidos \
+	-H "Authorization: Bearer <TOKEN>" \
+	-H "Content-Type: application/json" \
+	-d '{"producto":"Producto X","clienteId":1,"direccion":"Calle 123"}'
+```
+
