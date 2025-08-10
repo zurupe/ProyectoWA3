@@ -1,0 +1,12 @@
+com\proyecto\authservice\controller\AuthController$CheckResponse.class
+com\proyecto\authservice\config\AuthorizationServerConfig.class
+com\proyecto\authservice\repository\UsuarioRepository.class
+com\proyecto\authservice\entity\Usuario.class
+com\proyecto\authservice\AuthServiceApplication.class
+com\proyecto\authservice\dto\UsuarioResponse.class
+com\proyecto\authservice\entity\Role.class
+com\proyecto\authservice\controller\AuthController$InfoResponse.class
+com\proyecto\authservice\controller\AuthController.class
+com\proyecto\authservice\config\DataInitializer.class
+com\proyecto\authservice\service\UsuarioService.class
+com\proyecto\authservice\dto\RegistroRequest.class
