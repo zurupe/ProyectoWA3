@@ -3,8 +3,11 @@
 
 # Node
 node_modules
-npm-debug.log
 dist
+.angular
+.git
+.vscode
+npm-debug.log
 
 # OS
 .DS_Store

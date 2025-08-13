@@ -5,8 +5,8 @@ com\proyecto\authservice\entity\Usuario.class
 com\proyecto\authservice\AuthServiceApplication.class
 com\proyecto\authservice\dto\UsuarioResponse.class
 com\proyecto\authservice\entity\Role.class
-com\proyecto\authservice\controller\AuthController$InfoResponse.class
 com\proyecto\authservice\controller\AuthController.class
 com\proyecto\authservice\config\DataInitializer.class
+com\proyecto\authservice\controller\HealthController.class
 com\proyecto\authservice\service\UsuarioService.class
 com\proyecto\authservice\dto\RegistroRequest.class

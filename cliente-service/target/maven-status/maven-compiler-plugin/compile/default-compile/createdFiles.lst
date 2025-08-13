@@ -1,4 +1,12 @@
 com\proyecto\clienteservice\dto\ClienteRequest.class
+com\proyecto\clienteservice\controller\ClienteController$EmailExisteResponse.class
+com\proyecto\clienteservice\config\SecurityConfig.class
+com\proyecto\clienteservice\controller\ClienteController.class
+com\proyecto\clienteservice\service\ClienteService.class
+com\proyecto\clienteservice\controller\ClienteController$EstadisticasResponse.class
+com\proyecto\clienteservice\dto\ClienteResponse.class
+com\proyecto\clienteservice\ClienteServiceApplication.class
+com\proyecto\clienteservice\config\DataInitializer.class
 com\proyecto\clienteservice\config\OpenApiConfig.class
 com\proyecto\clienteservice\repository\ClienteRepository.class
 com\proyecto\clienteservice\entity\Cliente.class

@@ -1,0 +1,3 @@
+com\proyecto\trackingservice\TrackingServiceApplication.class
+com\proyecto\trackingservice\service\TrackingService.class
+com\proyecto\trackingservice\controller\TrackingController.class

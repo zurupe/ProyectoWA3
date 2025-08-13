@@ -1,31 +1,32 @@
-# Etapa de construcción
-FROM node:18-alpine as build
+# Etapa 1: Compilar la aplicación de Angular
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copia solo los archivos de manifiesto de paquetes
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production
+# Instala las dependencias del proyecto. Esto aprovecha el caché de Docker.
+RUN npm install
 
-# Copiar código fuente
+# Ahora, copia el resto del código fuente de tu aplicación
 COPY . .
 
-# Construir la aplicación
+# Construye la aplicación para producción
 RUN npm run build
 
-# Etapa de producción
+# Etapa 2: Servir la aplicación con Nginx
 FROM nginx:alpine
 
-# Copiar archivos construidos
-COPY --from=build /app/dist/frontend /usr/share/nginx/html
+# Copia los archivos de la aplicación ya compilados desde la etapa de 'build'
+# Ojo: Verifica que esta sea la ruta de salida correcta. Angular 17+ usa una subcarpeta 'browser'.
+COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
-# Copiar configuración de Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copia tu configuración personalizada de Nginx al lugar correcto
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Exponer puerto
-EXPOSE 4200
+# Expone el puerto 80, que es el puerto por defecto de Nginx
+EXPOSE 80
 
-# Comando por defecto
+# Inicia Nginx
 CMD ["nginx", "-g", "daemon off;"]
