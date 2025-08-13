@@ -22,8 +22,12 @@ FROM nginx:alpine
 # Ojo: Verifica que esta sea la ruta de salida correcta. Angular 17+ usa una subcarpeta 'browser'.
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
+
+# Elimina el archivo default.conf para evitar conflictos con la directiva 'events'
+RUN rm -f /etc/nginx/conf.d/default.conf
+
 # Copia tu configuración personalizada de Nginx al lugar correcto
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expone el puerto 80, que es el puerto por defecto de Nginx
 EXPOSE 80
