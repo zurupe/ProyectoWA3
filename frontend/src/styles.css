@@ -1,1 +1,126 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globales para el dashboard */
+body {
+	background: #f5f6fa;
+	font-family: 'Inter', Arial, sans-serif;
+	margin: 0;
+}
+
+.app-header {
+	background: #2d3e50;
+	color: #fff;
+	padding: 1rem 2rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.app-header h1 {
+	font-size: 1.8rem;
+	margin: 0;
+}
+
+.app-nav {
+	display: flex;
+	gap: 1.5rem;
+}
+
+.app-nav a {
+	color: #fff;
+	text-decoration: none;
+	font-weight: 500;
+	transition: color 0.2s;
+}
+
+.app-nav a.active {
+	color: #ff6b6b;
+}
+
+.dashboard-container {
+	max-width: 900px;
+	margin: 2rem auto;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 2px 16px rgba(44,62,80,0.08);
+	padding: 2rem;
+}
+
+.section-title {
+	font-size: 1.3rem;
+	color: #2d3e50;
+	margin-bottom: 1rem;
+}
+
+.btn-primary {
+	background: #ff6b6b;
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	padding: 0.5rem 1.2rem;
+	font-size: 1rem;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.btn-primary:hover {
+	background: #ff4757;
+}
+
+.input-group {
+	margin-bottom: 1rem;
+}
+
+.input-group label {
+	display: block;
+	margin-bottom: 0.3rem;
+	color: #2d3e50;
+}
+
+.input-group input, .input-group select {
+	width: 100%;
+	padding: 0.5rem;
+	border-radius: 4px;
+	border: 1px solid #dfe4ea;
+	font-size: 1rem;
+}
+
+.status-indicator {
+	display: inline-block;
+	padding: 0.3rem 0.8rem;
+	border-radius: 12px;
+	font-size: 0.95rem;
+	font-weight: 500;
+	background: #f1f2f6;
+	color: #2d3e50;
+	margin-left: 0.5rem;
+}
+
+.status-indicator.outdated {
+	background: #ff6b6b;
+	color: #fff;
+}
+
+.status-indicator.synced {
+	background: #2ed573;
+	color: #fff;
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1rem;
+}
+
+.table th, .table td {
+	padding: 0.7rem 0.5rem;
+	border-bottom: 1px solid #dfe4ea;
+	text-align: left;
+}
+
+.table th {
+	background: #f1f2f6;
+	color: #2d3e50;
+}
+
+.table tr:last-child td {
+	border-bottom: none;
+}
