@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class TrackingService {
-  private apiUrl = '/api/tracking';
+  private apiUrl = 'http://localhost:8084/api/tracking';
 
   constructor(private http: HttpClient) {}
 

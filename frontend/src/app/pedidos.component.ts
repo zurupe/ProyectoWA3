@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { PedidoService } from './pedido.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-pedidos',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard-container">
       <h2 class="section-title">Pedidos</h2>

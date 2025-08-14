@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { TrackingService } from './tracking.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-tracking',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard-container">
       <h2 class="section-title">Tracking de Pedido</h2>

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
-  private apiUrl = '/api/clientes'; // Ajusta la ruta según tu proxy/nginx
+  private apiUrl = 'http://localhost:8082/api/clientes';
 
   constructor(private http: HttpClient) {}
 
