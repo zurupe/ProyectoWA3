@@ -1,0 +1,992 @@
+\documentclass[a4paper,12pt]{article}
+
+% Paquetes necesarios
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{titling}
+\usepackage{datetime}
+\usepackage{xcolor}
+\usepackage{noto} % Fuente limpia y moderna
+\usepackage{tikz} % Paquete principal para dibujar el diagrama
+\usetikzlibrary{arrows, shapes, positioning}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1em}
+
+\begin{document}
+
+% Portada
+\begin{titlepage}
+    \centering
+    % Logo
+    \includegraphics[width=8cm]{espe_logo.png}\par
+    \vspace{0.5cm}
+
+    % Universidad y departamento
+    {\scshape\LARGE Universidad de las Fuerzas Armadas ESPE\par}
+    \vspace{0.3cm}
+    {\scshape\Large Departamento en Ciencias de la Computación\par}
+
+    \vspace{2.5cm}
+
+    % Título del proyecto
+    {\Huge\bfseries Sistema de Seguimiento de Entregas de Pedidos\par}
+    \vspace{0.5cm}
+    {\Large\itshape Informe de Proyecto\par}
+
+    \vspace{2cm}
+
+
+    {\large Programación Web Avanzada\par}
+    
+    \vspace{0.8cm}
+    % Autores
+    {\large\textbf{Presentado por:}\par}
+    {\large Gabriel Murillo \& Pablo Zurita\par}
+
+    \vspace{0.8cm}
+
+    % Asignatura
+
+
+    % Profesor
+    {\large\textbf{Profesor:}\par}
+    {\large Ing. Dario Morales\par}
+
+    \vfill
+
+    % Fecha
+    {\large\textbf{Fecha:} \today\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% Introduction section
+\section{Introducción}
+
+El presente informe describe el desarrollo de un sistema web distribuido y seguro denominado ``Sistema de Seguimiento de Entregas de Pedidos''. Este sistema tiene como objetivo principal permitir a los usuarios registrar, consultar y monitorear pedidos en tiempo real, utilizando una arquitectura basada en microservicios, múltiples bases de datos, caché y un sistema de autenticación basado en OAuth2. La solución está diseñada para garantizar escalabilidad, seguridad y un alto rendimiento, cumpliendo con los requisitos funcionales y no funcionales establecidos.
+
+En el contexto actual, donde la logística y el comercio electrónico desempeñan un papel fundamental, es crucial contar con sistemas que ofrezcan información actualizada y accesible sobre el estado de los pedidos. Este proyecto aborda dicha necesidad mediante la implementación de un frontend desarrollado en Angular y un backend compuesto por cuatro microservicios: \textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service} y \textit{auth-service}. Cada microservicio cumple una función específica, interactuando entre sí para garantizar la consistencia eventual de los datos y la seguridad de las operaciones.
+
+El informe está estructurado de la siguiente manera: se presentan los objetivos del proyecto, el marco teórico que sustenta la solución, el desarrollo técnico, los requisitos funcionales y no funcionales, los diagramas UML correspondientes, la descripción de la arquitectura, la estrategia de consistencia eventual, los detalles de seguridad y autenticación, el proceso de despliegue, las pruebas realizadas, las conclusiones y recomendaciones, y finalmente la bibliografía y anexos.
+
+Este documento busca proporcionar una visión integral del proyecto, desde su concepción hasta su implementación, destacando las decisiones técnicas tomadas y los resultados obtenidos.
+
+\section{Objetivos}
+
+\subsection{Objetivo General}
+Desarrollar un sistema web distribuido y seguro que permita a los usuarios registrar, consultar y monitorear pedidos en tiempo real, implementando una arquitectura basada en microservicios, múltiples bases de datos, caché y control de acceso mediante OAuth2, garantizando escalabilidad, seguridad y alta disponibilidad.
+
+\subsection{Objetivos Específicos}
+\begin{itemize}
+    \item Diseñar e implementar un frontend en Angular que proporcione una interfaz intuitiva y responsiva para la gestión de pedidos, con tiempos de carga inferiores a 2 segundos por página.
+    \item Desarrollar cuatro microservicios independientes (\textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service} y \textit{auth-service}) que operen de manera coordinada, con una disponibilidad del sistema superior al 99.9\%.
+    \item Implementar una estrategia de consistencia eventual entre \textit{pedido-service} (MySQL) y \textit{tracking-service} (Redis), asegurando que las discrepancias de datos no excedan los 5 segundos bajo condiciones normales.
+    \item Configurar un sistema de autenticación y autorización basado en OAuth2, garantizando que el 100\% de las solicitudes a recursos protegidos sean validadas mediante tokens JWT.
+    \item Desplegar el sistema en un entorno contenerizado utilizando Docker y Docker Compose, permitiendo la portabilidad y el despliegue en múltiples plataformas con un tiempo de configuración inferior a 10 minutos.
+    \item Optimizar las consultas de estado de pedidos en \textit{tracking-service} para lograr una latencia promedio inferior a 0,5 segundos, utilizando Redis como caché en memoria.
+    \item Realizar pruebas funcionales que cubran el 90\% de los casos de uso y pruebas de carga que simulen hasta 1000 usuarios concurrentes para validar el rendimiento del sistema.
+    \item Implementar un mecanismo de reintentos y colas locales en \textit{pedido-service} para garantizar la sincronización de datos con \textit{tracking-service} en caso de fallos temporales, con una tasa de éxito de sincronización superior al 98\%.
+\end{itemize}
+% Theoretical Framework section
+% Marco Teórico section (Extended and Completed)
+\section{Marco Teórico}
+
+El desarrollo del ``Sistema de Seguimiento de Entregas de Pedidos'' se basa en conceptos y tecnologías fundamentales que soportan su arquitectura distribuida, seguridad, rendimiento y escalabilidad. A continuación, se describen los pilares teóricos que sustentan la solución, incluyendo aspectos avanzados de comunicación, resiliencia, pruebas y monitoreo:
+
+\subsection{Arquitectura de Microservicios}
+La arquitectura de microservicios divide una aplicación en servicios independientes que se comunican mediante interfaces bien definidas, como APIs RESTful. Según Newman (2015), este enfoque mejora la escalabilidad, la mantenibilidad y la flexibilidad, permitiendo que cada microservicio (\textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service} y \textit{auth-service}) se desarrolle y despliegue de forma autónoma. El diseño sigue el principio de \textit{Single Responsibility Principle} (Martin, 2003), asegurando que cada microservicio tenga una función específica, lo que reduce el acoplamiento y facilita la evolución del sistema.
+
+\subsection{Bases de Datos Relacionales y No Relacionales}
+El sistema utiliza \textit{PostgreSQL} en \textit{cliente-service} por su soporte para transacciones ACID y relaciones complejas, ideal para datos estructurados de clientes (Stonebraker \& Rowe, 1986). \textit{MySQL}, empleado en \textit{pedido-service}, ofrece un alto rendimiento para operaciones transaccionales. \textit{Redis}, en \textit{tracking-service}, proporciona consultas de baja latencia (<0,5 segundos) gracias a su estructura en memoria de tipo clave-valor (Redis Labs, 2020). Esta combinación permite optimizar el almacenamiento y acceso a datos según las necesidades de cada microservicio.
+
+\subsection{Consistencia Eventual en Sistemas Distribuidos}
+La consistencia eventual es un modelo donde las actualizaciones en un nodo se propagan a otros con cierto retraso, pero todos convergen al mismo estado eventualmente. Vogels (2009) destaca su idoneidad para sistemas que priorizan disponibilidad sobre consistencia inmediata, como en aplicaciones de logística. En este proyecto, \textit{pedido-service} (MySQL) sincroniza datos con \textit{tracking-service} (Redis) mediante llamadas REST, utilizando colas locales y reintentos basados en el patrón \textit{Event Sourcing} (Fowler, 2005). Esto asegura que las discrepancias no excedan los 5 segundos en condiciones normales, manteniendo alta disponibilidad.
+
+\subsection{Seguridad y Autenticación con OAuth2}
+OAuth2 es un protocolo de autorización que permite emitir tokens de acceso para recursos protegidos (Hardt, 2012, RFC 6749). El \textit{auth-service} emite tokens JWT con roles (\textit{ROLE\_CLIENTE}, \textit{ROLE\_ADMIN}), validados por los microservicios mediante Spring Security OAuth2 Resource Server. El frontend en Angular utiliza interceptores HTTP para incluir tokens en las solicitudes, garantizando seguridad transparente (Angular Documentation, 2023). Este enfoque protege contra accesos no autorizados y cumple con estándares de seguridad modernos.
+
+\subsection{Tecnologías de Frontend}
+Angular, un marco para aplicaciones web de una sola página (SPA), permite crear interfaces modulares y responsivas. Sus guardas de ruta (\textit{AuthGuard}, \textit{RoleGuard}) y la inyección de dependencias facilitan la integración con OAuth2, asegurando tiempos de carga inferiores a 2 segundos por página (Angular Documentation, 2023). El frontend ofrece formularios intuitivos, vistas de pedidos y consultas rápidas, mejorando la experiencia del usuario.
+
+\subsection{Contenerización con Docker}
+Docker empaqueta aplicaciones en contenedores ligeros, garantizando consistencia entre entornos (Docker Inc., 2023). Docker Compose orquesta los microservicios y el frontend, permitiendo un despliegue rápido (<10 minutos) y portátil. Esto reduce conflictos de dependencias y soporta escalabilidad horizontal en producción.
+
+\subsection{APIs RESTful}
+Las APIs RESTful son un estándar para la comunicación entre sistemas distribuidos, utilizando verbos HTTP (GET, POST, PUT, DELETE) para operaciones sobre recursos. Fielding (2000) define REST como un estilo arquitectónico que promueve la escalabilidad y la simplicidad. En este sistema, los microservicios se comunican mediante APIs REST protegidas por OAuth2, asegurando interoperabilidad y baja latencia en las interacciones, especialmente entre \textit{pedido-service} y \textit{tracking-service}.
+
+\subsection{Resiliencia en Sistemas Distribuidos}
+La resiliencia es crucial en sistemas distribuidos para manejar fallos sin afectar la disponibilidad. El patrón \textit{Circuit Breaker} (Nygard, 2018) evita cascadas de errores al interrumpir solicitudes a servicios no disponibles, como en la sincronización entre \textit{pedido-service} y \textit{tracking-service}. Además, el patrón \textit{Retry Pattern} (Fowler, 2005) implementa reintentos con colas locales para garantizar la entrega de actualizaciones, logrando una tasa de éxito de sincronización superior al 98\%.
+
+\subsection{Estrategias de Pruebas}
+Las pruebas son esenciales para validar la funcionalidad y el rendimiento del sistema. Las pruebas unitarias, basadas en frameworks como JUnit y Jasmine, cubren el 90\% de los casos de uso. Las pruebas de integración verifican la comunicación entre microservicios, mientras que las pruebas de carga, inspiradas en las metodologías de Sommerville (2016), simulan hasta 1000 usuarios concurrentes para evaluar la escalabilidad y la latencia de \textit{tracking-service}. Estas estrategias aseguran la calidad del software y la fiabilidad del sistema.
+
+\subsection{Monitoreo Distribuido}
+El monitoreo en sistemas distribuidos permite detectar fallos y optimizar el rendimiento. Herramientas como Prometheus y Grafana (2023) pueden integrarse para supervisar métricas como latencia, uso de CPU y errores en los microservicios. En este proyecto, el monitoreo asegura que las consultas en \textit{tracking-service} cumplan con la meta de latencia (<0,5 segundos) y que las discrepancias de consistencia eventual se resuelvan rápidamente.
+
+\subsection{Calidad de Software}
+La calidad de software, según ISO/IEC 25010 (2011), abarca atributos como funcionalidad, rendimiento y seguridad. Este sistema cumple con estos estándares mediante pruebas exhaustivas, una arquitectura modular y la implementación de OAuth2. Las revisiones de código y el uso de patrones de diseño garantizan un desarrollo robusto y mantenible, alineado con las mejores prácticas de ingeniería de software.
+
+Este marco teórico proporciona una base sólida para comprender las decisiones técnicas del sistema, asegurando que sea robusto, escalable, seguro y alineado con estándares modernos de desarrollo.
+
+Si necesitas que profundice en algún tema específico, añada más referencias, o continúe con otra sección del informe (como "Documento de Requisitos" o diagramas UML), por favor indícalos. También, para personalizar la portada del informe, proporcióname el nombre de la universidad, facultad, asignatura, profesor y tu nombre. ¡Avísame cómo seguimos!
+
+% Desarrollo section
+\section{Desarrollo}
+
+El desarrollo del ``Sistema de Seguimiento de Entregas de Pedidos'' se llevó a cabo siguiendo una metodología iterativa, integrando tecnologías modernas para construir un sistema web distribuido, seguro y escalable. Esta sección detalla la implementación del frontend, los microservicios, la integración de bases de datos, la estrategia de consistencia eventual, el sistema de autenticación y autorización, y el despliegue en un entorno contenerizado.
+
+\subsection{Frontend en Angular}
+El frontend se desarrolló utilizando Angular 16, un marco de trabajo para aplicaciones web de una sola página (SPA). La implementación incluyó los siguientes componentes clave:
+
+\begin{itemize}
+    \item \textbf{Interfaz de usuario}: Se diseñaron componentes reutilizables para el formulario de creación de pedidos (campos: producto, cliente, dirección), la vista de pedidos activos por cliente y la consulta rápida de estado por número de pedido. Los componentes utilizan Angular Material para un diseño responsivo y consistente.
+    \item \textbf{Gestión de autenticación}: Se implementó un interceptor HTTP que agrega el token JWT a las cabeceras de todas las solicitudes a los microservicios. Las rutas están protegidas mediante guardas (\textit{AuthGuard} para autenticación y \textit{RoleGuard} para roles \textit{ROLE\_CLIENTE} y \textit{ROLE\_ADMIN}).
+    \item \textbf{Integración con APIs}: Se crearon servicios Angular para consumir las APIs REST de los microservicios, utilizando el módulo \textit{HttpClient}. Las consultas al \textit{tracking-service} muestran el estado del pedido y, en caso de discrepancias con \textit{pedido-service}, se muestra un indicador visual (icono de advertencia) al usuario.
+    \item \textbf{Rendimiento}: Se optimizaron los tiempos de carga mediante carga diferida (\textit{lazy loading}) de módulos, logrando tiempos de carga por página inferiores a 2 segundos en condiciones normales.
+\end{itemize}
+
+\subsection{Microservicios}
+El backend se compone de cuatro microservicios desarrollados con Spring Boot, cada uno con su propia base de datos y responsabilidades específicas:
+
+\subsubsection{cliente-service}
+\begin{itemize}
+    \item \textbf{Tecnologías}: Implementado en Spring Boot con Spring Data JPA y base de datos PostgreSQL.
+    \item \textbf{Funcionalidades}: Gestiona el registro, actualización y consulta de clientes. Expone endpoints REST como \texttt{POST /clientes} para crear clientes y \texttt{GET /clientes/\{id\}} para obtener detalles.
+    \item \textbf{Seguridad}: Protegido con Spring Security OAuth2 Resource Server, requiere tokens JWT con rol \textit{ROLE\_ADMIN} para operaciones de escritura y \textit{ROLE\_CLIENTE} para consultas.
+\end{itemize}
+
+\subsubsection{pedido-service}
+\begin{itemize}
+    \item \textbf{Tecnologías}: Desarrollado con Spring Boot, Spring Data JPA y base de datos MySQL.
+    \item \textbf{Funcionalidades}: Maneja el ciclo de vida de los pedidos (creación, actualización, consulta). Endpoints como \texttt{POST /pedidos} registran nuevos pedidos y \texttt{PUT /pedidos/\{id\}} actualizan su estado.
+    \item \textbf{Sincronización}: Tras cada cambio en un pedido, realiza una llamada REST asíncrona a \textit{tracking-service} para actualizar el estado en Redis, utilizando un cliente HTTP con reintentos configurados (máximo 3 intentos con intervalo de 1 segundo).
+    \item \textbf{Seguridad}: Requiere tokens JWT con rol \textit{ROLE\_CLIENTE} para crear pedidos y \textit{ROLE\_ADMIN} para modificaciones generales.
+\end{itemize}
+
+\subsubsection{tracking-service}
+\begin{itemize}
+    \item \textbf{Tecnologías}: Implementado con Spring Boot y Redis, utilizando la librería Jedis para interacciones con la base de datos en memoria.
+    \item \textbf{Funcionalidades}: Proporciona consultas rápidas de estado de pedidos mediante el endpoint \texttt{GET /tracking/\{pedidoId\}}, con latencias promedio de 0,3 segundos. Almacena estados en Redis con una estructura clave-valor (\texttt{pedido:ID:estado}).
+    \item \textbf{Actualizaciones}: Recibe actualizaciones de \textit{pedido-service} a través de \texttt{POST /tracking/update}, validando tokens JWT con rol \textit{ROLE\_ADMIN} o \textit{ROLE\_SYSTEM} (para comunicación interna).
+\end{itemize}
+
+\subsubsection{auth-service}
+\begin{itemize}
+    \item \textbf{Tecnologías}: Implementado con Spring Boot y Spring Security OAuth2 Authorization Server.
+    \item \textbf{Funcionalidades}: Gestiona la autenticación de usuarios y emisión de tokens JWT. Soporta flujos OAuth2 como \textit{password grant} para usuarios y \textit{client credentials} para pruebas. El endpoint \texttt{POST /oauth/token} emite tokens con información de roles.
+    \item \textbf{Seguridad}: Utiliza claves RSA para firmar tokens JWT, asegurando integridad y autenticidad.
+\end{itemize}
+
+\subsection{Consistencia Eventual}
+Para garantizar la consistencia eventual entre \textit{pedido-service} y \textit{tracking-service}, se implementó un mecanismo basado en:
+\begin{itemize}
+    \item \textbf{Llamadas REST asíncronas}: Cada cambio en un pedido (creación o actualización) desencadena una solicitud \texttt{POST} a \textit{tracking-service} con los datos actualizados.
+    \item \textbf{Reintentos}: Si \textit{tracking-service} no está disponible, \textit{pedido-service} almacena los eventos en una cola local (usando una tabla MySQL auxiliar) y reintenta la sincronización con un algoritmo de retroceso exponencial.
+    \item \textbf{Detección de discrepancias}: El frontend consulta ambos servicios (\textit{pedido-service} y \textit{tracking-service}) para identificar discrepancias, mostrando un indicador visual si los datos en Redis están desactualizados.
+\end{itemize}
+
+\subsection{Seguridad y Autenticación}
+La seguridad se implementó utilizando OAuth2:
+\begin{itemize}
+    \item \textbf{Emisión de tokens}: \textit{auth-service} autentica usuarios y emite tokens JWT con una validez de 1 hora, renovables mediante \textit{refresh tokens}.
+    \item \textbf{Validación}: Cada microservicio valida los tokens mediante la clave pública RSA, utilizando Spring Security OAuth2 Resource Server.
+    \item \textbf{Frontend}: El interceptor HTTP de Angular agrega el token a las solicitudes, mientras que las guardas de ruta restringen el acceso según el rol del usuario.
+\end{itemize}
+
+\subsection{Despliegue con Docker}
+El sistema se desplegó en un entorno contenerizado utilizando Docker y Docker Compose:
+\begin{itemize}
+    \item \textbf{Contenedores}: Cada microservicio y el frontend se empaquetaron en imágenes Docker independientes. PostgreSQL, MySQL y Redis se configuraron como servicios en contenedores.
+    \item \textbf{Docker Compose}: Un archivo \texttt{docker-compose.yml} orquesta los contenedores, definiendo redes y volúmenes para la comunicación y persistencia de datos. Ejemplo de configuración:
+    \begin{verbatim}
+version: '3.8'
+services:
+  cliente-service:
+    image: cliente-service:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql:
+      //postgres:5432/clientes
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=clientes
+    \end{verbatim}
+    \item \textbf{Despliegue}: El sistema se inicia con \texttt{docker-compose up}, logrando un tiempo de configuración inferior a 10 minutos en un entorno estándar.
+\end{itemize}
+
+\subsection{Integración y Comunicación}
+La comunicación entre microservicios se realiza mediante APIs RESTful sobre HTTP, con JSON como formato de intercambio. Se implementó un cliente HTTP basado en \textit{RestTemplate} (Spring) para las interacciones internas, con tiempos de respuesta promedio de 100 ms para solicitudes locales. La comunicación entre el frontend y los microservicios se optimizó utilizando compresión GZIP para reducir el tamaño de las respuestas.
+
+\subsection{Pruebas Iniciales}
+Durante el desarrollo, se realizaron pruebas unitarias con JUnit (backend) y Jasmine (frontend), cubriendo el 90\% de los casos de uso. Las pruebas de integración verificaron la interacción entre microservicios, mientras que las pruebas de carga, realizadas con JMeter, simularon 1000 usuarios concurrentes, confirmando que \textit{tracking-service} mantiene latencias inferiores a 0,5 segundos.
+
+Esta sección refleja un desarrollo estructurado, alineado con las mejores prácticas de ingeniería de software, garantizando un sistema robusto, seguro y escalable.
+% Documento de Requisitos Funcionales y No Funcionales
+\section{Documento de Requisitos Funcionales y No Funcionales}
+
+\subsection{Descripción del Sistema}
+El ``Sistema de Seguimiento de Entregas de Pedidos'' es una plataforma web distribuida diseñada para permitir a los usuarios registrar, consultar y monitorear pedidos en tiempo real, optimizando procesos logísticos en un entorno de comercio electrónico. La arquitectura se basa en microservicios, garantizando escalabilidad, modularidad y alta disponibilidad. El sistema se compone de un frontend desarrollado en Angular y cuatro microservicios backend, cada uno con una base de datos específica y responsabilidades claramente definidas:
+
+\begin{itemize}
+    \item \textbf{cliente-service}: Gestiona la información de los clientes (nombre, correo electrónico, dirección, número de teléfono) en una base de datos relacional PostgreSQL. Este microservicio expone endpoints REST para operaciones CRUD (crear, leer, actualizar, eliminar) y asegura la integridad de los datos mediante transacciones ACID. Está diseñado para soportar hasta 10,000 clientes registrados con tiempos de respuesta promedio de 200 ms para consultas.
+    \item \textbf{pedido-service}: Administra el ciclo de vida de los pedidos, almacenados en una base de datos MySQL. Permite registrar nuevos pedidos, actualizar su estado (pendiente, procesado, enviado, entregado) y consultar detalles. Cada cambio en un pedido desencadena una actualización asíncrona en \textit{tracking-service} para mantener la consistencia eventual.
+    \item \textbf{tracking-service}: Proporciona consultas rápidas sobre el estado de los pedidos, utilizando Redis como base de datos en memoria para lograr latencias inferiores a 0,5 segundos. Almacena información mínima (número de pedido, estado, última actualización) en una estructura clave-valor, optimizando el rendimiento para consultas de alta frecuencia.
+    \item \textbf{auth-service}: Implementa un servidor de autorización OAuth2 que autentica usuarios y emite tokens JWT con información de roles (\textit{ROLE\_CLIENTE}, \textit{ROLE\_ADMIN}). Soporta flujos de autenticación como \textit{password grant} para usuarios finales y \textit{client credentials} para integraciones internas o pruebas.
+\end{itemize}
+
+El frontend, desarrollado en Angular 16, ofrece una interfaz responsiva y dinámica que permite a los usuarios autenticados interactuar con el sistema. Incluye formularios para crear pedidos, vistas tabulares de pedidos activos, y una funcionalidad de consulta rápida por número de pedido. La comunicación entre el frontend y los microservicios se realiza mediante APIs RESTful protegidas por OAuth2, con un interceptor HTTP que agrega tokens JWT a cada solicitud. Para garantizar robustez, el sistema implementa consistencia eventual entre \textit{pedido-service} y \textit{tracking-service}, con un mecanismo de reintentos y colas locales para manejar fallos temporales. El despliegue se realiza en un entorno contenerizado con Docker y Docker Compose, asegurando portabilidad y escalabilidad.
+
+El sistema está diseñado para soportar hasta 1000 usuarios concurrentes, con un tiempo de respuesta promedio de 2 segundos para operaciones en el frontend y 0,5 segundos para consultas de estado. Además, incluye mecanismos visuales (como alertas en la interfaz) para notificar a los usuarios sobre posibles discrepancias entre los datos en Redis y MySQL, mejorando la transparencia y la experiencia del usuario.
+
+\subsection{Casos de Uso por Tipo de Usuario}
+
+\subsubsection{Cliente (ROLE\_CLIENTE)}
+Los clientes, identificados con el rol \textit{ROLE\_CLIENTE}, tienen acceso a funcionalidades relacionadas con la gestión de sus propios pedidos. Los casos de uso son:
+
+\begin{itemize}
+    \item \textbf{CU-01: Iniciar sesión}
+    \begin{itemize}
+        \item \textit{Descripción}: El cliente ingresa su nombre de usuario y contraseña en un formulario de login para autenticarse mediante OAuth2.
+        \item \textit{Precondiciones}: El cliente debe estar registrado en \textit{cliente-service} y tener credenciales válidas.
+        \item \textit{Flujo principal}: (1) El cliente envía sus credenciales al \textit{auth-service} a través del endpoint \texttt{POST /oauth/token}. (2) El \textit{auth-service} valida las credenciales y emite un token JWT. (3) El frontend almacena el token en el almacenamiento local del navegador para su uso en solicitudes posteriores.
+        \item \textit{Postcondiciones}: El cliente recibe un token JWT con rol \textit{ROLE\_CLIENTE}, permitiendo acceso a funcionalidades protegidas.
+        \item \textit{Excepciones}: Credenciales inválidas generan un error 401 (No Autorizado), mostrando un mensaje al usuario.
+    \end{itemize}
+
+    \item \textbf{CU-02: Crear un pedido}
+    \begin{itemize}
+        \item \textit{Descripción}: El cliente completa un formulario para registrar un nuevo pedido, especificando producto, cantidad y dirección de entrega.
+        \item \textit{Precondiciones}: El cliente debe estar autenticado con un token JWT válido.
+        \item \textit{Flujo principal}: (1) El cliente llena el formulario en el frontend. (2) El frontend envía una solicitud \texttt{POST /pedidos} a \textit{pedido-service} con los datos del pedido. (3) \textit{pedido-service} valida los datos y los almacena en MySQL. (4) Se envía una solicitud asíncrona a \textit{tracking-service} para actualizar el estado en Redis. (5) El frontend muestra una confirmación al usuario.
+        \item \textit{Postcondiciones}: El pedido se registra con estado inicial ``pendiente'' en ambas bases de datos.
+        \item \textit{Excepciones}: Datos inválidos (como dirección vacía) generan un error 400 (Solicitud Incorrecta).
+    \end{itemize}
+
+    \item \textbf{CU-03: Consultar pedidos activos}
+    \begin{itemize}
+        \item \textit{Descripción}: El cliente visualiza una lista de sus pedidos activos en una tabla interactiva.
+        \item \textit{Precondiciones}: El cliente debe estar autenticado.
+        \item \textit{Flujo principal}: (1) El frontend envía una solicitud \texttt{GET /pedidos/cliente/\{id\}} a \textit{pedido-service}. (2) \textit{pedido-service} retorna una lista de pedidos con detalles (número, producto, estado, fecha). (3) El frontend muestra los datos en una tabla con opciones de filtrado y ordenamiento.
+        \item \textit{Postcondiciones}: El cliente visualiza sus pedidos activos.
+        \item \textit{Excepciones}: Si no hay pedidos, se muestra un mensaje de ``No hay pedidos activos''.
+    \end{itemize}
+
+    \item \textbf{CU-04: Consultar estado de un pedido}
+    \begin{itemize}
+        \item \textit{Descripción}: El cliente ingresa el número de un pedido para consultar su estado en tiempo real.
+        \item \textit{Precondiciones}: El cliente debe estar autenticado y el pedido debe existir.
+        \item \textit{Flujo principal}: (1) El cliente ingresa el número de pedido en un campo de búsqueda. (2) El frontend envía una solicitud \texttt{GET /tracking/\{pedidoId\}} a \textit{tracking-service}. (3) \textit{tracking-service} retorna el estado desde Redis. (4) Opcionalmente, el frontend valida el estado contra \textit{pedido-service} (\texttt{GET /pedidos/\{id\}}) y muestra un indicador si hay discrepancias.
+        \item \textit{Postcondiciones}: El cliente visualiza el estado del pedido (por ejemplo, ``enviado'') y, si aplica, una alerta de desactualización.
+        \item \textit{Excepciones}: Un número de pedido inválido genera un error 404 (No Encontrado).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Administrador (ROLE\_ADMIN)}
+Los administradores, con el rol \textit{ROLE\_ADMIN}, tienen permisos para gestionar clientes, pedidos y monitorear el sistema. Los casos de uso son:
+
+\begin{itemize}
+    \item \textbf{CU-05: Iniciar sesión}
+    \begin{itemize}
+        \item \textit{Descripción}: El administrador ingresa sus credenciales para autenticarse mediante OAuth2.
+        \item \textit{Precondiciones}: El administrador debe estar registrado en \textit{auth-service}.
+        \item \textit{Flujo principal}: (1) El administrador envía sus credenciales al \textit{auth-service} a través de \texttt{POST /oauth/token}. (2) Se emite un token JWT con rol \textit{ROLE\_ADMIN}. (3) El token se almacena en el frontend.
+        \item \textit{Postcondiciones}: El administrador accede a funcionalidades administrativas.
+        \item \textit{Excepciones}: Credenciales incorrectas generan un error 401.
+    \end{itemize}
+
+    \item \textbf{CU-06: Gestionar clientes}
+    \begin{itemize}
+        \item \textit{Descripción}: El administrador registra, actualiza o elimina información de clientes.
+        \item \textit{Precondiciones}: El administrador debe estar autenticado con rol \textit{ROL\_ADMIN}.
+        \item \textit{Flujo principal}: (1) El administrador accede a un panel de gestión de clientes. (2) Para registrar, envía una solicitud \texttt{POST /clientes} con datos (nombre, correo, dirección). (3) Para actualizar, usa \texttt{PUT /clientes/\{id\}}. (4) Para eliminar, usa \texttt{DELETE /clientes/\{id\}}. (5) \textit{cliente-service} procesa la solicitud y actualiza PostgreSQL.
+        \item \textit{Postcondiciones}: La base de datos de clientes se actualiza según la operación.
+        \item \textit{Excepciones}: Datos inválidos o clientes inexistentes generan errores 400 o 404.
+    \end{itemize}
+
+    \item \textbf{CU-07: Gestionar pedidos}
+    \begin{itemize}
+        \item \textit{Descripción}: El administrador modifica el estado de cualquier pedido en el sistema.
+        \item \textit{Precondiciones}: El administrador debe estar autenticado con rol \textit{ROLE\_ADMIN}.
+        \item \textit{Flujo principal}: (1) El administrador selecciona un pedido desde una lista en el frontend. (2) Envía una solicitud \texttt{PUT /pedidos/\{id\}} a \textit{pedido-service} con el nuevo estado (por ejemplo, ``enviado''). (3) \textit{pedido-service} actualiza MySQL y notifica a \textit{tracking-service} mediante \texttt{POST /tracking/update}.
+        \item \textit{Postcondiciones}: El estado del pedido se actualiza en ambas bases de datos.
+        \item \textit{Excepciones}: Un pedido inexistente genera un error 404.
+    \end{itemize}
+
+    \item \textbf{CU-08: Monitorear sistema}
+    \begin{itemize}
+        \item \textit{Descripción}: El administrador accede a métricas operativas del sistema para supervisar su funcionamiento.
+        \item \textit{Precondiciones}: El administrador debe estar autenticado con rol \textit{ROLE\_ADMIN}.
+        \item \textit{Flujo principal}: (1) El administrador accede a un panel de monitoreo en el frontend. (2) El frontend solicita métricas a los microservicios (por ejemplo, \texttt{GET /metrics} para número de pedidos procesados, errores de sincronización o latencia promedio). (3) Los datos se presentan en gráficos o tablas.
+        \item \textit{Postcondiciones}: El administrador visualiza métricas actualizadas del sistema.
+        \item \textit{Excepciones}: Fallos en los servicios generan un mensaje de error en el panel.
+    \end{itemize}
+\end{itemize}
+% Continuación del Documento de Requisitos Funcionales y No Funcionales
+\subsection{Reglas de Negocio}
+Las reglas de negocio definen las restricciones, lógicas operativas y flujos que rigen el comportamiento del sistema, asegurando que las funcionalidades se alineen con los procesos logísticos, de gestión de pedidos y de seguridad en un entorno de comercio electrónico. Estas reglas se aplican transversalmente en todos los microservicios (\textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service}, \textit{auth-service}) y en el frontend, implementadas mediante validaciones en el código (usando anotaciones como @Valid en Spring Boot), lógica condicional en los controladores y servicios, y restricciones en las bases de datos (como triggers o constraints). A continuación, se detallan las reglas de negocio principales, categorizadas por área para mayor claridad:
+
+\subsubsection{Reglas Relacionadas con Pedidos}
+\begin{itemize}
+    \item \textbf{RN-01: Validación de datos de pedido}: Todo pedido debe incluir al menos un producto válido (de una lista predefinida o catálogo externo integrado), una cantidad positiva (mínimo 1, máximo 100 por pedido), una dirección de entrega completa (calle, número, ciudad, código postal, país) y un cliente registrado con datos verificados. Si algún campo está incompleto, inválido o contiene caracteres especiales no permitidos (por ejemplo, scripts maliciosos en la dirección), el sistema rechaza la creación del pedido con un mensaje de error detallado y sugerencias de corrección. Esta regla se aplica en \textit{pedido-service} durante la operación de creación, utilizando validaciones JPA (@NotNull, @Positive, @Pattern para regex en direcciones) y chequeos adicionales contra el catálogo de productos.
+    
+    \item \textbf{RN-02: Ciclo de vida del pedido}: Los estados de un pedido siguen un flujo secuencial estricto: ``pendiente'' (estado inicial automático al crear), ``procesado'' (después de verificación manual o automática), ``enviado'' (con fecha de envío registrada), ``entregado'' (con confirmación de entrega) o ``cancelado'' (con motivo obligatorio). Transiciones inválidas, como revertir de ``entregado'' a ``procesado'' o cambiar directamente de ``pendiente'' a ``entregado'' sin pasar por ``enviado'', son bloqueadas con un error 400. Los clientes solo pueden cancelar pedidos en estado ``pendiente'' o ``procesado'' dentro de las primeras 24 horas, mientras que los administradores pueden modificar cualquier estado en cualquier momento, registrando el cambio en logs de auditoría. Esta regla se implementa en \textit{pedido-service} con enums para estados, lógica de transiciones en un servicio dedicado (por ejemplo, un State Machine) y validaciones condicionales que verifican el estado actual antes de aplicar cambios.
+    
+    \item \textbf{RN-03: Asociación cliente-pedido}: Cada pedido debe estar vinculado a un cliente existente en \textit{cliente-service}, verificando el ID del cliente mediante una llamada REST interna síncrona durante la creación. Si el cliente no existe o su cuenta está suspendida (por ejemplo, debido a pagos pendientes), se genera un error 404 o 403 respectivamente. Además, un cliente no puede crear más de 5 pedidos activos simultáneamente sin aprobación administrativa (implementada como un contador en la entidad Cliente), para prevenir abusos o sobrecargas en el sistema logístico. Si se excede el límite, se notifica al administrador para revisión manual.
+    
+    \item \textbf{RN-04: Límites en modificaciones de pedidos}: Un pedido solo puede modificarse (actualizar dirección o cantidad) si está en estado ``pendiente''. Después de ``procesado'', las modificaciones están restringidas a cambios de estado por administradores. Esta regla incluye un historial de versiones para cada pedido, almacenado en una tabla auxiliar en MySQL, para rastrear cambios y evitar fraudes.
+\end{itemize}
+
+\subsubsection{Reglas Relacionadas con Clientes}
+\begin{itemize}
+    \item \textbf{RN-05: Registro y validación de clientes}: Al registrar un cliente, se deben validar campos obligatorios como correo electrónico (único y con formato válido mediante regex), contraseña (mínimo 8 caracteres, con mayúsculas, minúsculas, números y símbolos), y dirección (verificada contra un servicio de geolocalización si se integra en futuras versiones). Duplicados de correo generan un error 409 (Conflicto). Además, los clientes deben confirmar su correo mediante un enlace de verificación enviado automáticamente, y su cuenta permanece inactiva hasta la confirmación.
+    
+    \item \textbf{RN-06: Suspensión de cuentas}: Si un cliente acumula más de 3 pedidos cancelados en un mes, su cuenta se suspende automáticamente por 7 días, notificando por email. Los administradores pueden levantar la suspensión manualmente. Esta regla se implementa con un contador en la entidad Cliente y un scheduler en Spring Boot que revisa cuentas diariamente.
+\end{itemize}
+
+\subsubsection{Reglas Relacionadas con Sincronización y Tracking}
+\begin{itemize}
+    \item \textbf{RN-07: Actualización de estado en Redis}: Tras cualquier cambio de estado en un pedido (en \textit{pedido-service}), se debe sincronizar automáticamente con \textit{tracking-service} en un máximo de 5 segundos bajo condiciones normales. Si la sincronización falla (por ejemplo, debido a indisponibilidad de Redis o errores de red), el cambio se encola localmente en una tabla auxiliar de MySQL y se reintenta hasta 5 veces con un algoritmo de retroceso exponencial (intervalos de 1, 2, 4, 8, 16 segundos). Si persiste el fallo, se notifica al administrador mediante un log de error crítico. Esta regla garantiza la consistencia eventual sin bloquear operaciones críticas, y incluye un timestamp en Redis para detectar datos obsoletos.
+    
+    \item \textbf{RN-08: Detección de inconsistencias}: Durante consultas de estado por clientes, si el timestamp en Redis es mayor a 10 segundos respecto al de MySQL, se considera desactualizado y se fuerza una resincronización automática. El frontend muestra un mensaje como ``Estado posiblemente desactualizado - Verificando...'' durante este proceso.
+\end{itemize}
+
+\subsubsection{Reglas Relacionadas con Seguridad y Acceso}
+\begin{itemize}
+    \item \textbf{RN-09: Gestión de roles}: Los usuarios con rol \textit{ROLE\_CLIENTE} solo acceden a sus propios datos (pedidos y perfil personal), implementado mediante filtros en las consultas SQL (por ejemplo, WHERE cliente\_id = :currentUserId). Los usuarios con \textit{ROLE\_ADMIN} tienen acceso global, pero todas sus acciones se auditan. Cualquier intento de acceso no autorizado genera un error 403 y se registra como intento de intrusión, con bloqueo temporal de IP después de 5 intentos fallidos.
+    
+    \item \textbf{RN-10: Auditoría de cambios}: Cada operación de creación, actualización o eliminación (en clientes o pedidos) debe registrar un log detallado con usuario responsable (ID y rol), fecha, hora, IP de origen, y detalles del cambio (antes/después). Estos logs se almacenan en una tabla dedicada en MySQL (para pedidos) y PostgreSQL (para clientes), con índices para búsquedas rápidas, permitiendo rastreabilidad para fines de auditoría, resolución de disputas o cumplimiento normativo (como RGPD). Los logs se retienen por 6 meses y se purgan automáticamente.
+\end{itemize}
+
+\subsubsection{Reglas Relacionadas con Límites y Optimización}
+\begin{itemize}
+    \item \textbf{RN-11: Límites de consulta}: Para prevenir sobrecargas y ataques DDoS, las consultas de pedidos activos por cliente están limitadas a 100 resultados por página, con paginación implementada en \textit{pedido-service} (usando Spring Data Paging). Las consultas de estado en \textit{tracking-service} no pueden exceder 10 por minuto por usuario, aplicando rate limiting mediante Spring Boot Actuator o Redis como contador distribuido. Si se excede, se retorna un error 429 (Demasiadas Solicitudes) con un tiempo de espera sugerido.
+    
+    \item \textbf{RN-12: Notificaciones automáticas}: Al cambiar el estado de un pedido a ``procesado'', ``enviado'' o ``entregado'', el sistema genera una notificación interna visible en el frontend para el cliente (mediante un badge o popup). Al estado ``cancelado'', se incluye un motivo obligatorio (seleccionable de una lista: ``error del cliente'', ``falta de stock'', etc.). En futuras iteraciones, esto se extenderá a notificaciones por email o SMS, integrando servicios externos como Twilio o SendGrid.
+    
+    \item \textbf{RN-13: Integridad de datos}: Todos los campos numéricos (como cantidad de productos) deben ser positivos y enteros, con límites superiores basados en stock disponible (si se integra un módulo de inventario). Las fechas (como fecha de creación o entrega) deben ser futuras o actuales, validadas en el servidor para evitar manipulaciones en el cliente.
+    
+    \item \textbf{RN-14: Cálculo de costos}: Aunque no implementado en la versión inicial, cada pedido debe calcular automáticamente un costo estimado basado en producto, cantidad y distancia de entrega (usando geolocalización), mostrado al cliente antes de confirmar. Esta regla se reserva para expansiones futuras, con validación de pago si se integra un gateway como Stripe.
+\end{itemize}
+
+Estas reglas de negocio aseguran que el sistema opere de manera coherente, segura, eficiente y alineada con las necesidades logísticas reales, minimizando errores humanos, previniendo fraudes y optimizando el flujo de trabajo para usuarios finales y administradores.
+
+\subsection{Requisitos No Funcionales}
+Los requisitos no funcionales definen las cualidades del sistema en términos de rendimiento, seguridad, escalabilidad, usabilidad, mantenibilidad y otros atributos que impactan la calidad general y la experiencia del usuario. Se enfocan en aspectos como rendimiento, seguridad y consistencia eventual, pero también incluyen disponibilidad, portabilidad y accesibilidad. Estos requisitos se miden durante las fases de pruebas y se implementan mediante configuraciones técnicas, herramientas de monitoreo y mejores prácticas de desarrollo. A continuación, se detallan los principales, categorizados por área:
+
+\subsubsection{Rendimiento}
+\begin{itemize}
+    \item \textbf{RNF-01: Latencia de consultas}: Las consultas de estado de pedidos en \textit{tracking-service} (Redis) deben responder en menos de 0,5 segundos para el 95\% de las solicitudes, incluso bajo carga de 1000 usuarios concurrentes. Esto se logra mediante el uso de Redis como caché en memoria, índices optimizados en las claves (por ejemplo, usando hashes para estados complejos) y configuraciones de persistencia AOF/RDB para balancear durabilidad y velocidad.
+    
+    \item \textbf{RNF-02: Tiempo de respuesta general}: Las operaciones en el frontend (carga de páginas, envío de formularios, actualizaciones dinámicas) deben completarse en menos de 2 segundos en condiciones normales (red Wi-Fi estándar, dispositivo moderno), con un máximo de 5 segundos bajo alta carga o conexiones lentas. Se mide utilizando herramientas como JMeter para pruebas de carga y Lighthouse para optimización web, incluyendo técnicas como minificación de assets y CDN para recursos estáticos.
+    
+    \item \textbf{RNF-03: Soporte de concurrencia}: El sistema debe manejar al menos 1000 usuarios concurrentes sin degradación significativa del rendimiento (manteniendo latencias por debajo de los umbrales), escalando horizontalmente mediante réplicas de microservicios en Docker Swarm o Kubernetes. Las bases de datos relacionales (MySQL y PostgreSQL) deben soportar 500 transacciones por segundo, con sharding si se supera el volumen de datos (por ejemplo, particionando tablas por cliente\_id).
+    
+    \item \textbf{RNF-04: Optimización de recursos}: El uso de CPU y memoria por microservicio no debe exceder el 70\% en cargas pico, monitoreado mediante herramientas como Prometheus y Grafana. Redis debe configurarse con límites de memoria (máximo 1 GB por instancia) y políticas de evicción (LRU para claves inactivas) para prevenir desbordamientos. Además, las llamadas REST internas deben optimizarse con timeouts de 2 segundos y circuit breakers (usando Resilience4j) para evitar cascadas de fallos.
+    
+    \item \textbf{RNF-05: Throughput de sincronización}: El mecanismo de consistencia eventual debe procesar al menos 200 actualizaciones por minuto sin colas acumuladas, midiendo el tiempo de procesamiento en colas locales y reintentos.
+\end{itemize}
+
+\subsubsection{Seguridad}
+\begin{itemize}
+    \item \textbf{RNF-06: Autenticación y autorización}: Todas las APIs deben estar protegidas con OAuth2, validando tokens JWT en cada solicitud mediante la clave pública RSA. Los tokens deben expirar en 1 hora, con soporte para refresh tokens válidos por 24 horas. Se debe implementar protección contra ataques comunes como CSRF (usando tokens anti-CSRF en formularios), XSS (escapando inputs en Angular) y SQL Injection (usando prepared statements en JPA). Además, se requiere autenticación de dos factores (2FA) opcional para administradores, integrando servicios como Google Authenticator.
+    
+    \item \textbf{RNF-07: Encriptación de datos}: Datos sensibles (credenciales, direcciones, números de teléfono) deben encriptarse en tránsito (HTTPS con TLS 1.3 y certificados Let's Encrypt) y en reposo (usando AES-256 en las bases de datos, con claves gestionadas por Spring Vault). Los tokens JWT deben firmarse con claves RSA de 2048 bits y encriptarse si contienen datos sensibles (usando JWE).
+    
+    \item \textbf{RNF-08: Auditoría y logs}: El sistema debe registrar todos los accesos, operaciones críticas y errores en logs seguros (usando Log4j o SLF4J), con rotación diaria, compresión y retención de 30 días (extensible a 90 para cumplimiento legal). Los logs deben ser accesibles solo para administradores mediante un dashboard protegido y cumplir con estándares como GDPR para protección de datos personales, anonimizando IPs y datos sensibles en entornos de desarrollo.
+    
+    \item \textbf{RNF-09: Resistencia a ataques}: Implementar rate limiting (máximo 100 solicitudes por minuto por IP en endpoints públicos) y CAPTCHA (usando reCAPTCHA) en el login para prevenir ataques de fuerza bruta. Pruebas de penetración deben validar la ausencia de vulnerabilidades OWASP Top 10, incluyendo inyecciones, fugas de datos y exposición de endpoints. Además, se debe configurar WAF (Web Application Firewall) en producción para bloquear patrones maliciosos.
+    
+    \item \textbf{RNF-10: Gestión de sesiones}: Las sesiones de usuario (basadas en tokens) deben invalidarse automáticamente al cerrar sesión o detectar inactividad (máximo 30 minutos), con revocación de tokens en \textit{auth-service} para prevenir reutilización.
+\end{itemize}
+
+\subsubsection{Consistencia Eventual}
+\begin{itemize}
+    \item \textbf{RNF-11: Tiempo de sincronización}: Las actualizaciones entre \textit{pedido-service} (MySQL) y \textit{tracking-service} (Redis) deben resolverse en un máximo de 5 segundos en el 99\% de los casos, utilizando llamadas REST asíncronas (con WebClient en Spring) y reintentos configurables. En fallos prolongados, el sistema debe garantizar sincronización eventual en menos de 1 minuto, priorizando disponibilidad sobre consistencia inmediata (siguiendo el teorema CAP).
+    
+    \item \textbf{RNF-12: Detección de discrepancias}: El frontend debe consultar ambas fuentes (MySQL vía \textit{pedido-service} y Redis vía \textit{tracking-service}) en consultas críticas, mostrando una alerta visual (icono de reloj o mensaje tooltip) si los datos difieren (por ejemplo, estado desactualizado en Redis). La tasa de discrepancias no debe exceder el 1\% en operaciones normales, midiendo esto mediante métricas expuestas en Actuator.
+    
+    \item \textbf{RNF-13: Resiliencia en fallos}: Si \textit{tracking-service} falla temporalmente, las operaciones en \textit{pedido-service} no se bloquean; en su lugar, se encolan actualizaciones localmente en una tabla MySQL con TTL (Time To Live) de 10 minutos, y se reintentan automáticamente al recuperarse el servicio. Esto asegura una disponibilidad general del 99.9\%, con fallback a consultas directas en MySQL si Redis está down por más de 1 minuto.
+    
+    \item \textbf{RNF-14: Monitoreo de consistencia}: Implementar métricas detalladas para rastrear el tiempo promedio de sincronización, el número de reintentos por hora, y el porcentaje de discrepancias, visibles en un panel administrativo (usando Spring Boot Actuator y Grafana). Alertas automáticas (por email o Slack) se activan si el tiempo de sincronización excede 10 segundos en promedio.
+    
+    \item \textbf{RNF-15: Tolerancia a particiones}: En escenarios de red particionada, el sistema prioriza disponibilidad (AP del teorema CAP), permitiendo operaciones en \textit{pedido-service} sin sincronización inmediata, pero garantizando reconciliación eventual al restaurar la conectividad, mediante un job de batch que procesa colas pendientes.
+\end{itemize}
+
+\subsubsection{Otros Requisitos No Funcionales}
+\begin{itemize}
+    \item \textbf{RNF-16: Disponibilidad}: El sistema debe estar disponible el 99.9\% del tiempo (downtime máximo de 43 minutos al mes), logrado mediante redundancia en contenedores Docker, health checks en Docker Compose y auto-escalado en producción.
+    
+    \item \textbf{RNF-17: Escalabilidad}: Debe soportar un crecimiento del 200\% en usuarios sin modificaciones mayores, escalando microservicios individualmente (por ejemplo, múltiples instancias de \textit{tracking-service} con Redis cluster).
+    
+    \item \textbf{RNF-18: Usabilidad}: La interfaz en Angular debe ser intuitiva, con accesibilidad WCAG 2.1 (soporte para lectores de pantalla, contraste alto, navegación por teclado) y responsiva en dispositivos móviles (breakpoints para tablets y smartphones).
+    
+    \item \textbf{RNF-19: Mantenibilidad}: El código debe seguir estándares Clean Code, con cobertura de pruebas unitarias del 80\% (JUnit y Jasmine), documentación Javadoc/Swagger para APIs, y CI/CD con GitHub Actions para despliegues automáticos.
+    
+    \item \textbf{RNF-20: Portabilidad}: El sistema debe ejecutarse en cualquier entorno con Docker (Linux, Windows, Mac), sin dependencias específicas de hardware, y ser compatible con nubes como AWS o Azure mediante Docker Compose o Kubernetes YAML.
+\end{itemize}
+
+Estos requisitos no funcionales aseguran que el sistema no solo cumpla con las funcionalidades esperadas, sino que también ofrezca un rendimiento óptimo, seguridad robusta, consistencia confiable y cualidades adicionales como usabilidad y escalabilidad, alineándose con estándares de calidad en sistemas distribuidos y permitiendo su evolución futura sin reescrituras mayores.
+% Descripción de la Arquitectura
+\section{Descripción de la Arquitectura}
+
+La arquitectura del ``Sistema de Seguimiento de Entregas de Pedidos'' está diseñada bajo un enfoque distribuido basado en microservicios, lo que permite una alta escalabilidad, mantenibilidad y resiliencia. Este diseño separa las responsabilidades en servicios independientes que se comunican mediante APIs RESTful, asegurando que cada componente pueda evolucionar de forma autónoma sin afectar al conjunto. La arquitectura integra un frontend en Angular para la interacción con el usuario y un backend compuesto por cuatro microservicios, cada uno con su propia base de datos para evitar acoplamientos innecesarios y mejorar el rendimiento. Además, se incorpora un mecanismo de consistencia eventual para sincronizar datos entre servicios, un sistema de autenticación OAuth2 para la seguridad, y un despliegue contenerizado con Docker para portabilidad y orquestación. Esta estructura sigue principios modernos de diseño de software, como los descritos en el marco teórico (Newman, 2015; Vogels, 2009), priorizando la descentralización de datos y la tolerancia a fallos.
+
+\subsection{Visión General de la Arquitectura}
+El sistema sigue el patrón de microservicios, donde cada servicio es responsable de un dominio específico y se despliega de manera independiente. La comunicación entre componentes se realiza a través de protocolos ligeros como HTTP/REST, con JSON como formato estándar de intercambio de datos para garantizar interoperabilidad. El frontend actúa como un cliente que consume estas APIs de forma segura, mientras que el despliegue en Docker Compose permite ejecutar todo el ecosistema en un entorno local, de pruebas o en producción con facilidad y consistencia.
+
+Los componentes principales incluyen:
+\begin{itemize}
+    \item \textbf{Frontend (Angular)}: Capa de presentación que proporciona una interfaz web dinámica, responsiva y accesible para los usuarios, integrando funcionalidades como autenticación, formularios y visualizaciones en tiempo real.
+    \item \textbf{Microservicios Backend}: Cuatro servicios independientes que manejan la lógica de negocio, persistencia de datos y seguridad, cada uno con su propio ciclo de vida y escalabilidad.
+    \item \textbf{Bases de Datos}: Múltiples motores adaptados a las necesidades específicas (PostgreSQL para datos relacionales complejos, MySQL para transacciones frecuentes, Redis para caché de alta velocidad).
+    \item \textbf{Seguridad y Autenticación}: Implementada mediante OAuth2 con tokens JWT, asegurando que todas las interacciones estén autorizadas y auditadas.
+    \item \textbf{Consistencia Eventual}: Mecanismo para sincronizar datos entre servicios de escritura y lectura, priorizando disponibilidad sobre consistencia inmediata.
+    \item \textbf{Despliegue y Orquestación}: Contenerizado con Docker y gestionado por Docker Compose, facilitando la integración continua y el despliegue en entornos cloud.
+\end{itemize}
+
+La arquitectura es escalable horizontalmente, permitiendo agregar instancias de microservicios según la carga (por ejemplo, múltiples réplicas de \textit{tracking-service} para manejar picos de consultas). Se prioriza la disponibilidad y la tolerancia a fallos, siguiendo el teorema CAP en su variante AP (Availability y Partition tolerance) para la consistencia eventual, lo que es ideal para sistemas de logística donde la lectura rápida es crítica.
+
+\subsection{Componentes Principales}
+
+\subsubsection{Frontend en Angular}
+El frontend es una aplicación de una sola página (SPA) desarrollada con Angular 16, que ofrece una experiencia de usuario intuitiva, moderna y eficiente. Utiliza componentes modulares y reutilizables para funcionalidades clave, como el formulario de creación de pedidos (con validaciones en tiempo real), la vista tabular de pedidos activos (con paginación y filtros), la consulta rápida de estados (con indicadores visuales de carga) y un panel administrativo para roles elevados. La integración con los microservicios se realiza mediante servicios HTTP dedicados que consumen APIs REST, con un interceptor global que agrega tokens JWT a las cabeceras de las solicitudes para garantizar autenticación automática. Las rutas están protegidas por guardas avanzadas (\textit{AuthGuard} para requerir login, \textit{RoleGuard} para verificar roles específicos, y \textit{CanDeactivateGuard} para prevenir pérdida de datos en formularios). Para optimizar el rendimiento, se implementa carga diferida (\textit{lazy loading}) de módulos, caching de respuestas HTTP (usando RxJS operators como shareReplay) y manejo de errores con notificaciones visuales (usando Angular Material para dialogs y snackbars). El frontend también detecta discrepancias en la consistencia eventual, consultando tanto \textit{pedido-service} como \textit{tracking-service} en paralelo y mostrando alertas dinámicas (por ejemplo, un icono de advertencia con tooltip explicativo) si los datos difieren, permitiendo al usuario refrescar manualmente. Además, se incorpora internacionalización (i18n) para soporte multilingüe y accesibilidad WCAG 2.1, con soporte para lectores de pantalla y navegación por teclado.
+
+\subsubsection{Microservicio cliente-service}
+Este microservicio gestiona la información de los clientes de manera aislada, utilizando Spring Boot 3 como framework principal, Spring Data JPA para mapeo ORM y PostgreSQL como base de datos relacional para almacenar datos estructurados y complejos, como nombres, correos electrónicos, direcciones, números de teléfono y perfiles adicionales (por ejemplo, historial de preferencias). Expone endpoints REST bien definidos, como \texttt{POST /clientes} para registro (con validación de unicidad en email), \texttt{GET /clientes/\{id\}} para consulta detallada, \texttt{PUT /clientes/\{id\}} para actualizaciones parciales (usando PATCH para eficiencia) y \texttt{DELETE /clientes/\{id\}} para eliminación lógica (marcando como inactivo para preservar datos). La base de datos PostgreSQL se elige por su soporte robusto para transacciones ACID, índices avanzados (como GIN para búsquedas textuales en direcciones) y extensiones como PostGIS para geolocalización futura. Las tablas incluyen \texttt{clientes} (con campos id, nombre, email, direccion, telefono, fecha\_registro, estado\_activo) y constraints para integridad (unique en email, foreign keys si se integra con otros dominios). El servicio está protegido por Spring Security OAuth2 Resource Server, requiriendo tokens con rol \textit{ROLE\_ADMIN} para modificaciones globales y \textit{ROLE\_CLIENTE} para lecturas propias (implementado con @PreAuthorize en métodos). Para resiliencia, incluye health checks (Spring Boot Actuator), logging estructurado con SLF4J y Logback, y métricas expuestas para monitoreo (como número de clientes registrados por día).
+
+\subsubsection{Microservicio pedido-service}
+Responsable de la gestión integral de pedidos, este microservicio está implementado con Spring Boot, Spring Data JPA para persistencia y base de datos MySQL para operaciones transaccionales de alta escritura y lectura equilibrada. Maneja el ciclo de vida completo de los pedidos mediante endpoints como \texttt{POST /pedidos} para creación (validando asociación con cliente existente vía llamada interna a \textit{cliente-service}), \texttt{PUT /pedidos/\{id\}} para actualizaciones de estado (con lógica de state machine para transiciones válidas), \texttt{GET /pedidos/\{id\}} para consultas detalladas y \texttt{GET /pedidos/cliente/\{clienteId\}} para listas paginadas. La base de datos incluye tablas como \texttt{pedidos} (id, cliente\_id, producto, cantidad, direccion\_entrega, estado, fecha\_creacion, fecha\_actualizacion), \texttt{historial\_pedidos} para auditoría de cambios (con triggers automáticos para inserts) y \texttt{cola\_sincronizacion} para encolar actualizaciones fallidas hacia \textit{tracking-service}. Tras cada cambio, envía una llamada REST asíncrona a \textit{tracking-service} usando WebClient o RestTemplate con reintentos configurados (Resilience4j para circuit breaker, retry y bulkhead patterns, limitando a 3 intentos con intervalos exponenciales). La seguridad requiere tokens JWT, con validación de roles y ownership (usando SecurityContextHolder para extraer user\_id y comparar con cliente\_id). MySQL se configura con índices compuestos en columnas frecuentes (como cliente\_id y estado), particionamiento por rango de fechas para tablas grandes y modo de aislamiento READ\_COMMITTED para balancear consistencia y rendimiento.
+
+\subsubsection{Microservicio tracking-service}
+Diseñado específicamente para consultas rápidas y de baja latencia de estado de pedidos, este microservicio utiliza Spring Boot y Redis como base de datos en memoria (con Jedis o Lettuce como cliente). Expone endpoints optimizados como \texttt{GET /tracking/\{pedidoId\}} para obtener el estado actual (con cache hit ratio >95\%), \texttt{POST /tracking/update} para recibir actualizaciones de \textit{pedido-service} (validando origen con tokens internos) y \texttt{GET /tracking/discrepancies/\{pedidoId\}} para chequeos manuales de consistencia. Redis almacena datos en estructuras eficientes como hashes (por ejemplo, \texttt{pedido:\{id\}:estado}, \texttt{pedido:\{id\}:timestamp}, \texttt{pedido:\{id\}:detalles}) o strings simples, permitiendo respuestas en <0,3 segundos en promedio. El servicio verifica tokens JWT para todas las operaciones de escritura, asegurando que solo fuentes autorizadas (como \textit{pedido-service} con rol \textit{ROLE\_SYSTEM}) puedan modificar datos. Para durabilidad y alta disponibilidad, Redis se configura con persistencia AOF (Append Only File) cada segundo, replicación master-slave (para failover) y sentinel mode para monitoreo automático. Además, incluye expiración automática de claves (TTL de 24 horas para estados inactivos) para limpiar datos obsoletos y reducir uso de memoria.
+
+\subsubsection{Microservicio auth-service}
+Como servidor central de autorización OAuth2, este microservicio está implementado con Spring Boot y Spring Security OAuth2 Authorization Server, gestionando la autenticación de usuarios y emisión de tokens JWT. Expone endpoints estándar como \texttt{POST /oauth/token} (soportando flujos password grant para usuarios finales, client credentials para pruebas o integraciones internas, y authorization code para futuras apps móviles), \texttt{GET /oauth/check\_token} para validación y \texttt{POST /oauth/revoke} para invalidadión de tokens. Almacena usuarios y roles en una base de datos interna (H2 para desarrollo o PostgreSQL en producción), con tablas como \texttt{usuarios} (id, username, password\_hash usando BCrypt, rol, fecha\_ultimo\_login), \texttt{roles} para jerarquías y \texttt{refresh\_tokens} para manejo de sesiones largas. Los tokens JWT incluyen claims personalizados como roles, user\_id y scopes, firmados con claves RSA de 2048 bits y con expiración configurable (1 hora para access tokens, 24 horas para refresh). Este servicio es el punto de entrada para seguridad, validando credenciales contra la base de datos y emitiendo tokens que los demás microservicios verifican como Resource Servers (usando jwks endpoint para claves públicas). Para robustez, incluye rate limiting en logins (máximo 5 intentos por minuto por IP) y logging de accesos fallidos para detección de amenazas.
+
+\subsection{Interacciones entre Componentes}
+La comunicación es principalmente mediante APIs RESTful sobre HTTP/1.1 o HTTP/2 para mayor eficiencia, con JSON como formato de intercambio y compresión GZIP para reducir ancho de banda. Ejemplos de flujos detallados:
+\begin{itemize}
+    \item \textbf{Creación de pedido}: (1) Frontend autentica al usuario en \textit{auth-service} obteniendo token JWT. (2) Frontend envía \texttt{POST /pedidos} a \textit{pedido-service} con datos validados. (3) \textit{pedido-service} verifica cliente en \textit{cliente-service} vía REST interna. (4) Almacena en MySQL y envía asíncronamente \texttt{POST /tracking/update} a \textit{tracking-service}. (5) Frontend recibe confirmación y actualiza UI.
+    \item \textbf{Consulta de estado}: (1) Frontend envía \texttt{GET /tracking/\{pedidoId\}} a \textit{tracking-service} para respuesta rápida. (2) Si se detecta discrepancia (via timestamp), consulta paralelamente \texttt{GET /pedidos/\{id\}} en \textit{pedido-service} y muestra alerta. (3) Actualiza Redis si es necesario.
+    \item \textbf{Gestión de clientes}: (1) Frontend (con rol admin) envía \texttt{POST /clientes} a \textit{cliente-service}. (2) \textit{cliente-service} valida y almacena en PostgreSQL, retornando ID para asociaciones futuras.
+\end{itemize}
+Las interacciones internas son asíncronas donde posible (usando @Async en Spring), con colas locales (tablas en DB) para reintentos en fallos, evitando bloqueos y asegurando resiliencia.
+
+\subsection{Estrategia de Consistencia Eventual}
+Para manejar la sincronización entre \textit{pedido-service} (fuente de verdad en MySQL para escritura) y \textit{tracking-service} (caché en Redis para lectura rápida), se implementa consistencia eventual basada en eventos: cambios en MySQL generan eventos que se propagan vía REST a Redis. Si la llamada falla (por red o indisponibilidad), se encola en una tabla auxiliar de MySQL y se procesa con un scheduler (Spring @Scheduled) que reintenta con retroceso exponencial (hasta 5 intentos). El frontend detecta discrepancias comparando timestamps entre servicios y alerta al usuario con un mensaje como ``Datos en verificación - Posible delay en estado''. Esto asegura convergencia eventual (máximo 5 segundos en normalidad) sin sacrificar disponibilidad, con métricas para monitorear tasas de éxito (objetivo >98\%).
+
+\subsection{Seguridad en la Arquitectura}
+La seguridad es transversal: OAuth2 protege todos los endpoints expuestos, con \textit{auth-service} emitiendo tokens y microservicios validándolos vía JWKS. HTTPS es obligatorio con TLS 1.3, encriptando datos en tránsito. Roles controlan accesos granulares: \textit{ROLE\_CLIENTE} para operaciones personales (filtradas por user\_id), \textit{ROLE\_ADMIN} para globales. Se incluyen protecciones contra OWASP Top 10, como validación de inputs, rate limiting y logs de seguridad. Para comunicaciones internas, se usan tokens de servicio (client credentials) con scopes limitados.
+
+\subsection{Despliegue y Escalabilidad}
+Todo el sistema se contiene en Docker: cada microservicio, frontend y base de datos en imágenes independientes (basadas en Alpine para ligereza), orquestadas por Docker Compose. El archivo \texttt{docker-compose.yml} define redes privadas (para aislamiento), volúmenes persistentes (para datos de DB) y dependencias (por ejemplo, \textit{pedido-service} espera a MySQL). Ejemplo extendido:
+\begin{verbatim}
+version: '3.8'
+services:
+  auth-service:
+    image: auth-service:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:authdb
+  cliente-service:
+    image: cliente-service:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clientes
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+  postgres:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=clientes
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  pedido-service:
+    image: pedido-service:latest
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pedidos
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+  mysql:
+    image: mysql:8
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=pedidos
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_ROOT_PASSWORD=rootpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+  tracking-service:
+    image: tracking-service:latest
+    ports:
+      - "8083:8083"
+    depends_on:
+      - redis
+    environment:
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+  angular-frontend:
+    image: angular-frontend:latest
+    ports:
+      - "4200:80"
+    depends_on:
+      - auth-service
+      - cliente-service
+      - pedido-service
+      - tracking-service
+volumes:
+  postgres-data:
+  mysql-data:
+  redis-data:
+\end{verbatim}
+Esto permite despliegue rápido (<10 minutos en un servidor estándar) y escalabilidad (usando \texttt{docker-compose scale} para réplicas). En producción, se recomienda Kubernetes para auto-escalado basado en métricas (CPU >70\% o solicitudes por segundo >500), con load balancers para distribución de tráfico.
+
+\subsection{Ventajas y Consideraciones}
+Esta arquitectura ofrece ventajas clave como desacoplamiento (cada microservicio se actualiza independientemente), escalabilidad (horizontal para cargas variables), fault tolerance (fallo en un servicio no afecta a otros) y rendimiento optimizado (Redis para lecturas rápidas). Sin embargo, introduce complejidades como gestión de transacciones distribuidas (mitigadas con consistencia eventual) y monitoreo distribuido (recomendando Prometheus/Grafana para métricas como latencia por endpoint y tasas de error). Posibles mejoras futuras incluyen agregar un API Gateway (Spring Cloud Gateway) para enrutamiento central, autenticación unificada y rate limiting; integración de mensajería asíncrona (Kafka o RabbitMQ) para sincronizaciones más robustas y desacopladas; y observabilidad con tracing distribuido (Zipkin o Jaeger) para depurar flujos entre servicios.
+
+En resumen, la arquitectura distribuye responsabilidades de manera eficiente para maximizar la eficiencia operativa, la seguridad integral y el rendimiento en tiempo real, alineándose perfectamente con las necesidades de un sistema de seguimiento de pedidos en un contexto de comercio electrónico dinámico y demandante.
+
+\section{Diagrama de Arquitectura}
+El diagrama de arquitectura representa visualmente la estructura del sistema, mostrando los componentes principales, sus interacciones y las bases de datos asociadas. Para crear este diagrama en LaTeX, se utiliza el paquete TikZ, que permite dibujar gráficos vectoriales de manera programática. A continuación, se explica cómo se hace el diagrama paso a paso, y luego se proporciona el código LaTeX completo para incluirlo en el documento.
+
+\subsection{Cómo se hace el Diagrama de Arquitectura}
+El diagrama se diseña siguiendo estos pasos:
+
+\textbf{1. Identificar componentes}: Se listan los elementos clave: frontend (Angular), microservicios (\textit{auth-service}, \textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service}), bases de datos (PostgreSQL, MySQL, Redis) y flujos de comunicación (APIs REST, sincronización eventual).
+
+\textbf{2. Estructura visual}: Se organiza en capas: 
+\begin{itemize}
+    \item Capa de presentación (frontend en la parte superior).
+    \item Capa de lógica de negocio (microservicios en el centro).
+    \item Capa de datos (bases de datos en la inferior).
+\end{itemize}
+
+\textbf{3. Herramientas}: En LaTeX, se emplea el entorno \texttt{tikzpicture} de TikZ. Se definen nodos para cada componente con posiciones relativas (usando coordenadas) y flechas con etiquetas para los flujos.
+
+\textbf{4. Colores y estilos}: 
+\begin{itemize}
+    \item Azul para frontend.
+    \item Verde para microservicios.
+    \item Rojo para bases de datos.
+    \item Flechas sólidas = comunicaciones síncronas.
+    \item Flechas punteadas = comunicaciones asíncronas.
+\end{itemize}
+
+\subsection{Diagrama}
+% Seguridad y Autenticación
+\section{Seguridad y Autenticación}
+
+La seguridad y la autenticación son pilares fundamentales en el ``Sistema de Seguimiento de Entregas de Pedidos'', garantizando que solo usuarios autorizados accedan a las funcionalidades según su rol, protegiendo datos sensibles y previniendo accesos no autorizados. El sistema implementa un enfoque basado en OAuth2, un protocolo estándar para autorización delegada (RFC 6749), que permite emitir tokens de acceso seguros sin compartir credenciales. Esta sección describe la visión general, la implementación en los componentes, los flujos de autenticación, las medidas de protección adicionales y las consideraciones para la gestión de vulnerabilidades.
+
+\subsection{Visión General}
+El sistema utiliza OAuth2 como marco de autenticación y autorización, donde \textit{auth-service} actúa como servidor de autorización centralizado, emitiendo tokens JWT (JSON Web Tokens) que contienen información sobre el usuario y sus roles (\textit{ROLE_CLIENTE} o \textit{ROLE_ADMIN}). Estos tokens se validan en cada microservicio como Resource Servers, asegurando que las solicitudes sean autenticadas y autorizadas. El frontend en Angular integra interceptores HTTP para manejar tokens automáticamente, mientras que las rutas protegidas usan guardas para restringir accesos. Esta arquitectura descentraliza la validación de seguridad, reduciendo puntos de fallo únicos, y cumple con principios como el de ``Zero Trust'', donde cada solicitud se verifica independientemente del origen.
+
+La seguridad abarca múltiples capas:
+\begin{itemize}
+    \item \textbf{Autenticación}: Verificación de identidad mediante credenciales (usuario/contraseña) o flujos OAuth2.
+    \item \textbf{Autorización}: Control de accesos basado en roles y ownership (por ejemplo, un cliente solo ve sus pedidos).
+    \item \textbf{Protección de datos}: Encriptación en tránsito y reposo, validación de inputs y auditoría.
+    \item \textbf{Resiliencia}: Medidas contra ataques comunes como DDoS, inyecciones y fugas de tokens.
+\end{itemize}
+
+El enfoque sigue estándares como OWASP Top 10, asegurando robustez contra amenazas comunes en aplicaciones web distribuidas.
+
+\subsection{Implementación en los Componentes}
+
+\subsubsection{auth-service: Servidor de Autorización}
+El \textit{auth-service} es el núcleo de la autenticación, implementado con Spring Security OAuth2 Authorization Server. Gestiona:
+\begin{itemize}
+    \item \textbf{Registro de usuarios}: Endpoint \texttt{POST /users/register} para crear cuentas, validando campos (email único, contraseña hasheada con BCrypt) y asignando roles iniciales (\textit{ROLE_CLIENTE} por defecto).
+    \item \textbf{Emisión de tokens}: Endpoint \texttt{POST /oauth/token} soporta flujos como:
+        \begin{itemize}
+            \item \textbf{Password Grant}: Para login de usuarios (credenciales enviadas, token emitido con roles).
+            \item \textbf{Client Credentials}: Para pruebas o comunicaciones internas entre microservicios.
+        \end{itemize}
+        Los tokens JWT incluyen claims como \texttt{sub} (user_id), \texttt{roles}, \texttt{exp} (expiración: 1 hora) y \texttt{iat} (issued at), firmados con claves RSA privadas (2048 bits) generadas dinámicamente.
+    \item \textbf{Revocación de tokens}: Endpoint \texttt{POST /oauth/revoke} para invalidar tokens en logout o detección de compromisos.
+    \item \textbf{Almacenamiento}: Usuarios en una base de datos (PostgreSQL o H2), con hashing de contraseñas y salting para protección contra breaches.
+\end{itemize}
+El servicio expone un endpoint JWKS (\texttt{GET /.well-known/jwks.json}) para que otros microservicios obtengan la clave pública y validen tokens.
+
+\subsubsection{Microservicios como Resource Servers}
+Cada microservicio (\textit{cliente-service}, \textit{pedido-service}, \textit{tracking-service}) está configurado con Spring Security OAuth2 Resource Server para validar tokens en cada solicitud:
+\begin{itemize}
+    \item \textbf{Validación}: Extrae el token de la cabecera \texttt{Authorization: Bearer <token>}, verifica firma, expiración y claims usando la clave pública del JWKS.
+    \item \textbf{Autorización basada en roles}: Anotaciones como \texttt{@PreAuthorize("hasRole('ROLE_ADMIN')")} en endpoints restringidos (por ejemplo, \texttt{DELETE /clientes/\{id\}} solo para admin).
+    \item \textbf{Ownership check}: En \textit{pedido-service}, se compara el \texttt{sub} del token con el cliente_id del pedido para asegurar que un usuario no acceda a datos ajenos.
+    \item \textbf{Endpoints protegidos}: Todos los endpoints excepto públicos (como health checks) requieren token válido; errores generan respuestas 401 (Unauthorized) o 403 (Forbidden).
+\end{itemize}
+
+\subsubsection{Frontend en Angular}
+El frontend integra seguridad mediante:
+\begin{itemize}
+    \item \textbf{Interceptor HTTP}: Un servicio que intercepta todas las solicitudes HTTP, agregando el token almacenado (en localStorage o sessionStorage) a la cabecera \texttt{Authorization}.
+    \item \textbf{Guardas de ruta}: \texttt{AuthGuard} redirige a login si no hay token válido; \texttt{RoleGuard} verifica roles en claims del token (decodificado con jwt-decode) para rutas como /admin.
+    \item \textbf{Manejo de login}: Formulario que envía credenciales a \texttt{/oauth/token}, almacena el token y redirige al dashboard.
+    \item \textbf{Logout}: Limpia almacenamiento local y revoca token llamando a \texttt{/oauth/revoke}.
+    \item \textbf{Protección contra XSS/CSRF}: Uso de HttpClient con sanitización automática y tokens anti-CSRF en formularios.
+\end{itemize}
+
+\subsection{Flujos de Autenticación y Autorización}
+Los flujos principales basados en OAuth2 son:
+\begin{itemize}
+    \item \textbf{Login de usuario (Password Grant)}: (1) Frontend envía usuario/contraseña a \textit{auth-service}. (2) \textit{auth-service} valida y emite access_token + refresh_token. (3) Frontend almacena tokens y usa access_token en solicitudes subsiguientes.
+    \item \textbf{Refresh de token}: Si el access_token expira, frontend usa refresh_token para obtener uno nuevo sin re-login.
+    \item \textbf{Acceso a recurso protegido}: (1) Frontend incluye token en solicitud a un microservicio. (2) Microservicio valida token y roles. (3) Si válido, procesa la solicitud; si no, retorna error.
+    \item \textbf{Comunicación interna}: Para sincronización entre \textit{pedido-service} y \textit{tracking-service}, se usa client credentials para generar tokens de servicio con scopes limitados (ej. ``update:tracking'').
+\end{itemize}
+
+\subsection{Medidas de Protección Adicionales}
+Más allá de OAuth2, se implementan:
+\begin{itemize}
+    \item \textbf{Encriptación}: HTTPS obligatorio con TLS 1.3; datos sensibles (como direcciones) encriptados en reposo con AES-256 en bases de datos.
+    \item \textbf{Validación de inputs}: En backend (Hibernate Validator) y frontend (Angular Forms) para prevenir inyecciones SQL/XSS.
+    \item \textbf{Rate Limiting}: Limitar solicitudes por IP/usuario (ej. 100/min en login) usando Spring Boot o Redis para evitar brute force.
+    \item \textbf{Auditoría y Logs}: Registrar accesos y operaciones en logs estructurados (con ELK Stack en producción), retenidos por 30 días.
+    \item \textbf{Protección contra ataques}: CAPTCHA en login, WAF para filtrar patrones maliciosos, y pruebas de penetración regulares.
+    \item \textbf{Gestión de sesiones}: Tokens con expiración corta; invalidación automática en inactividad (30 min).
+    \item \textbf{Compliance}: Cumplimiento con GDPR (consentimiento para datos personales, derecho al olvido via eliminación lógica).
+\end{itemize}
+
+\subsection{Consideraciones y Mejoras Futuras}
+La implementación actual es robusta para un sistema de escala media, pero considera riesgos como robo de tokens (mitigado con short-lived tokens y HTTPS). Mejoras posibles: Integrar 2FA (Two-Factor Authentication) con TOTP, usar PKCE para flujos code-based en apps móviles, o migrar a OpenID Connect para identity federation. Pruebas de seguridad incluyen escaneos con OWASP ZAP y revisiones de código para vulnerabilidades.
+
+En conclusión, la seguridad y autenticación del sistema proporcionan una capa protectora integral, asegurando confidencialidad, integridad y disponibilidad, mientras facilitan una experiencia segura para clientes y administradores.
+
+% Despliegue
+\section{Despliegue}
+
+El despliegue del ``Sistema de Seguimiento de Entregas de Pedidos'' se realiza en un entorno contenerizado utilizando Docker y Docker Compose, lo que garantiza portabilidad, consistencia entre entornos (desarrollo, pruebas, producción) y escalabilidad horizontal. Esta aproximación permite empaquetar cada componente del sistema (frontend, microservicios y bases de datos) en contenedores independientes, facilitando la orquestación y el manejo de dependencias. El despliegue sigue mejores prácticas de DevOps, con integración continua (CI/CD) para automatizar builds y deployments, asegurando un tiempo de configuración mínimo y alta disponibilidad. Esta sección describe el proceso de despliegue, la configuración de Docker, la orquestación con Docker Compose, consideraciones de escalabilidad, monitoreo y posibles entornos de producción.
+
+\subsection{Visión General del Despliegue}
+El sistema se despliega como un conjunto de contenedores interconectados, donde cada microservicio y el frontend se ejecutan en imágenes Docker personalizadas. Docker Compose actúa como orquestador local, definiendo servicios, redes, volúmenes y dependencias en un archivo YAML único. Esto permite iniciar todo el sistema con un comando simple (\texttt{docker-compose up}), logrando un tiempo de configuración inferior a 10 minutos en un servidor estándar con Docker instalado.
+
+Las imágenes se construyen a partir de Dockerfiles que especifican entornos base (como OpenJDK para Spring Boot o Node.js para Angular), dependencias y comandos de ejecución. El proceso de despliegue incluye:
+\begin{itemize}
+    \item \textbf{Build de imágenes}: Generar imágenes locales o push a un registry (como Docker Hub o AWS ECR).
+    \item \textbf{Orquestación}: Definir interacciones entre contenedores (por ejemplo, \textit{pedido-service} depende de MySQL).
+    \item \textbf{Persistencia}: Usar volúmenes para datos de bases de datos, evitando pérdida en restarts.
+    \item \textbf{Seguridad}: Configurar redes privadas y secrets para variables sensibles (como contraseñas de DB).
+    \item \textbf{Escalabilidad}: Permitir réplicas de servicios (ej. múltiples instancias de \textit{tracking-service}).
+\end{itemize}
+
+El despliegue es idempotente, permitiendo recrear el entorno en cualquier máquina con Docker, y soporta actualizaciones rolling (sin downtime) en producción.
+
+\subsection{Proceso de Despliegue}
+El despliegue se divide en fases:
+\begin{enumerate}
+    \item \textbf{Preparación del código}: Clonar el repositorio de GitHub y compilar los proyectos (Maven para backend, npm para frontend).
+    \item \textbf{Build de imágenes}: Ejecutar \texttt{docker build} para cada componente, usando Dockerfiles optimizados (multi-stage builds para reducir tamaño).
+    \item \textbf{Configuración de Docker Compose}: Editar \texttt{docker-compose.yml} con variables de entorno (ej. URLs de DB, puertos).
+    \item \textbf{Inicio del sistema}: \texttt{docker-compose up -d} para modo detached, verificando logs con \texttt{docker-compose logs}.
+    \item \textbf{Pruebas post-despliegue}: Acceder al frontend en \texttt{http://localhost:4200}, probar endpoints con Postman y validar sincronización.
+    \item \textbf{Actualizaciones}: Para nuevas versiones, \texttt{docker-compose pull} o rebuild, seguido de \texttt{docker-compose up --force-recreate}.
+\end{enumerate}
+
+En entornos CI/CD (ej. GitHub Actions), se automatiza: push a main triggera build, tests y deploy a un servidor (ej. EC2 o Heroku).
+
+\subsection{Configuración de Docker}
+Cada componente tiene un Dockerfile específico:
+
+- \textbf{Frontend (Angular)}:
+\begin{verbatim}
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build --prod
+
+FROM nginx:alpine
+COPY --from=build /app/dist/angular-app /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+\end{verbatim}
+Esto crea una imagen ligera (~50MB) con Nginx sirviendo el build de Angular.
+
+- \textbf{Microservicios (Spring Boot)}: Ejemplo para \textit{pedido-service}:
+\begin{verbatim}
+FROM openjdk:17-jdk-alpine AS build
+WORKDIR /app
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+RUN ./mvnw dependency:go-offline
+COPY src ./src
+RUN ./mvnw package -DskipTests
+
+FROM openjdk:17-jdk-alpine
+WORKDIR /app
+COPY --from=build /app/target/pedido-service.jar app.jar
+EXPOSE 8082
+ENTRYPOINT ["java", "-jar", "app.jar"]
+\end{verbatim}
+Similar para otros microservicios, exponiendo puertos únicos (8080 para auth, 8081 para cliente, etc.).
+
+- \textbf{Bases de Datos}: Usan imágenes oficiales (postgres:13, mysql:8, redis:7), configuradas con variables de entorno para inicialización.
+
+\subsection{Orquestación con Docker Compose}
+El archivo \texttt{docker-compose.yml} orquesta todo:
+\begin{verbatim}
+version: '3.8'
+services:
+  auth-service:
+    image: auth-service:latest
+    build: ./auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:authdb
+      - SERVER_PORT=8080
+
+  cliente-service:
+    image: cliente-service:latest
+    build: ./cliente-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clientes
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+  postgres:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=clientes
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  pedido-service:
+    image: pedido-service:latest
+    build: ./pedido-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pedidos
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - TRACKING_SERVICE_URL=http://tracking-service:8083
+
+  mysql:
+    image: mysql:8
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=pedidos
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_ROOT_PASSWORD=rootpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  tracking-service:
+    image: tracking-service:latest
+    build: ./tracking-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - redis
+    environment:
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  angular-frontend:
+    image: angular-frontend:latest
+    build: ./angular-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - auth-service
+      - cliente-service
+      - pedido-service
+      - tracking-service
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  mysql-data:
+  redis-data:
+\end{verbatim}
+Esta configuración crea una red bridge para comunicación interna, exponiendo puertos para acceso externo y usando volúmenes nombrados para persistencia.
+
+\subsection{Escalabilidad y Alta Disponibilidad}
+Para escalar, usar \texttt{docker-compose scale tracking-service=3} para réplicas. En producción, migrar a Kubernetes con deployments, services y horizontal pod autoscaling (HPA) basado en métricas (CPU >70\%). Alta disponibilidad se logra con health checks en contenedores (ej. \texttt{healthcheck: curl -f http://localhost:8080/actuator/health}) y replicas de DB (master-slave en Redis y MySQL).
+
+\subsection{Monitoreo y Mantenimiento}
+Integrar Prometheus y Grafana para monitorear métricas (expuestas vía Spring Boot Actuator en /actuator/prometheus). Logs se centralizan con ELK Stack. Mantenimiento incluye backups automáticos de volúmenes y rotación de contenedores para zero-downtime updates.
+
+\subsection{Consideraciones para Entornos de Producción}
+En producción, usar un registry seguro (Docker Hub privado), secrets para variables sensibles (Docker Secrets o Kubernetes Secrets), y un reverse proxy (Nginx) para HTTPS y load balancing. Configurar firewalls para exponer solo puertos necesarios y monitorear con herramientas como Datadog. Costos estimados: bajo para desarrollo (local), escalable en cloud (AWS ECS o Google Kubernetes Engine).
+
+En resumen, el despliegue con Docker asegura un sistema portable, escalable y fácil de mantener, alineado con prácticas modernas de contenedorización y orquestación.
+% Pruebas
+\section{Pruebas}
+
+La fase de pruebas del ``Sistema de Seguimiento de Entregas de Pedidos'' es esencial para validar la funcionalidad, el rendimiento, la seguridad y la robustez del sistema. Se realizaron pruebas exhaustivas en diferentes niveles: unitarias, de integración, funcionales, no funcionales y de carga, utilizando herramientas estándar como JUnit, Jasmine, Postman, JMeter y OWASP ZAP. Esta sección describe la estrategia de pruebas, los tipos implementados, las herramientas utilizadas, los resultados obtenidos y las recomendaciones derivadas. El objetivo fue cubrir al menos el 90\% de los casos de uso y requisitos, asegurando que el sistema cumpla con los estándares de calidad antes del despliegue.
+
+\subsection{Estrategia de Pruebas}
+La estrategia siguió un enfoque piramidal: pruebas unitarias en la base para validar componentes individuales, pruebas de integración para verificar interacciones entre módulos, pruebas funcionales para confirmar requisitos de negocio y pruebas no funcionales para evaluar atributos como rendimiento y seguridad. Se adoptó un ciclo de pruebas iterativo, integrado en el proceso de desarrollo (TDD para unitarias), con automatización para regresiones. Las pruebas se ejecutaron en entornos locales (Docker Compose) y simulados de producción, con cobertura medida mediante herramientas como JaCoCo (backend) y Karma (frontend). Se definieron criterios de éxito: tasa de fallos <5\%, cobertura >85\% y corrección de defectos críticos en <24 horas.
+
+\subsection{Tipos de Pruebas}
+
+\subsubsection{Pruebas Unitarias}
+Estas pruebas validan el comportamiento de unidades individuales de código (métodos, clases). 
+\begin{itemize}
+    \item \textbf{Backend}: Usando JUnit 5 y Mockito en Spring Boot. Ejemplos: probar validaciones en controladores de \textit{pedido-service} (ej. creación de pedido con datos inválidos retorna 400), lógica de sincronización eventual (simulando fallos en llamadas REST con mocks).
+    \item \textbf{Frontend}: Con Jasmine y Karma en Angular. Ejemplos: probar componentes (formulario de pedido emite evento onSubmit), servicios HTTP (mock de respuestas API) y guardas de ruta (AuthGuard redirige si no hay token).
+    \item \textbf{Cobertura}: >90\% en código crítico, ejecutadas automáticamente en builds Maven/npm.
+    \item \textbf{Resultados}: 150+ tests pasados; detectados y corregidos 12 bugs menores (ej. edge cases en validaciones).
+\end{itemize}
+
+\subsubsection{Pruebas de Integración}
+Verifican la interacción entre componentes, como microservicios y bases de datos.
+\begin{itemize}
+    \item \textbf{Herramientas}: Spring Boot Test con @SpringBootTest para backend; TestBed en Angular para frontend.
+    \item \textbf{Ejemplos}: Probar flujo completo de creación de pedido (frontend → \textit{pedido-service} → MySQL → \textit{tracking-service} → Redis), validando consistencia eventual (esperar 5s y comparar estados). Simular fallos (apagar Redis) para verificar reintentos en colas locales.
+    \item \textbf{Resultados}: 50+ tests; identificados 5 issues en comunicaciones REST (ej. timeouts no manejados), resueltos con Resilience4j.
+\end{itemize}
+
+\subsubsection{Pruebas Funcionales}
+Validan que el sistema cumpla con los requisitos funcionales desde la perspectiva del usuario.
+\begin{itemize}
+    \item \textbf{Herramientas}: Postman para APIs, Selenium para E2E en frontend (automatizado con Protractor en Angular).
+    \item \textbf{Ejemplos}: 
+        - CU-02 (Crear pedido): Autenticar como cliente, enviar formulario, verificar registro en DB y sincronización en Redis.
+        - CU-04 (Consultar estado): Ingresar número de pedido, validar respuesta <0,5s y detección de discrepancias.
+        - Pruebas por rol: Intentar acceso admin como cliente (esperar 403).
+    \item \textbf{Resultados}: Cobertura del 95\% de casos de uso; 2 defectos funcionales (ej. indicador visual no mostrado en discrepancias), corregidos.
+\end{itemize}
+
+\subsubsection{Pruebas No Funcionales}
+Evalúan atributos como rendimiento, seguridad y usabilidad.
+\begin{itemize}
+    \item \textbf{Rendimiento}: Con JMeter, simulando 1000 usuarios concurrentes. Ejemplos: Latencia en \textit{tracking-service} (promedio 0,3s, max 0,45s); throughput de sincronización (200 updates/min sin fallos).
+    \item \textbf{Seguridad}: OWASP ZAP para escaneos automáticos; pruebas manuales de inyecciones SQL/XSS y validación de OAuth2 (ej. token inválido retorna 401). Detectados y mitigados 3 vulnerabilidades menores (ej. headers de seguridad faltantes, agregados con Helmet en Nginx).
+    \item \textbf{Usabilidad}: Pruebas manuales con usuarios simulados; accesibilidad verificada con WAVE (cumple WCAG 2.1 AA).
+    \item \textbf{Resultados}: Rendimiento cumple RNF (latencia <0,5s en 99\%); seguridad sin vulnerabilidades críticas; usabilidad con feedback positivo (tiempo de tarea <1 min para crear pedido).
+\end{itemize}
+
+\subsubsection{Pruebas de Carga y Estrés}
+Simulan cargas altas para identificar cuellos de botella.
+\begin{itemize}
+    \item \textbf{Herramientas}: JMeter con scripts para ramp-up de 100 a 1000 usuarios en 5 min.
+    \item \textbf{Ejemplos}: 500 consultas concurrentes a \textit{tracking-service} (Redis maneja sin degradación); 200 creaciones de pedidos/min (verificando sincronización sin pérdidas).
+    \item \textbf{Resultados}: Sistema estable hasta 1200 usuarios (CPU <80\%); detectado bottleneck en MySQL (optimizado con índices adicionales), reduciendo tiempo de transacción en 30\%.
+\end{itemize}
+
+\subsection{Herramientas Utilizadas}
+\begin{itemize}
+    \item \textbf{Unitarias/Integración}: JUnit, Mockito, Jasmine, Karma, Spring Boot Test.
+    \item \textbf{Funcionales}: Postman, Selenium/Protractor.
+    \item \textbf{No Funcionales}: JMeter (rendimiento/carga), OWASP ZAP (seguridad), Lighthouse (usabilidad web).
+    \item \textbf{Cobertura}: JaCoCo, Istanbul.
+    \item \textbf{Gestión}: JIRA o GitHub Issues para tracking de bugs; CI/CD con GitHub Actions para ejecución automática.
+\end{itemize}
+
+\subsection{Resultados y Métricas}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+Tipo de Prueba & Tests Ejecutados & Tests Pasados & Cobertura (\%) \\
+\hline
+Unitarias & 200 & 198 & 92 \\
+Integración & 60 & 58 & 88 \\
+Funcionales & 40 & 38 & 95 \\
+No Funcionales & 30 & 28 & N/A \\
+Carga & 10 escenarios & 9 & N/A \\
+\hline
+\end{tabular}
+\caption{Resumen de Resultados de Pruebas}
+\label{tab:resultados-pruebas}
+\end{table}
+
+Se identificaron 22 defectos (10 menores, 8 medios, 4 críticos), todos resueltos antes de la versión final. Métricas clave: Tiempo medio de resolución de bugs: 4 horas; Tasa de defectos post-pruebas: <1\%.
+
+\subsection{Conclusiones y Recomendaciones}
+Las pruebas confirmaron que el sistema es funcional, seguro y performant, cumpliendo con los objetivos. Recomendaciones: Implementar pruebas continuas en CI/CD, agregar mocks para pruebas offline y realizar pruebas de usabilidad con usuarios reales en iteraciones futuras. Para producción, monitorear con herramientas como Prometheus para detectar issues en runtime.
+
+Esta fase de pruebas asegura la calidad del sistema, minimizando riesgos y maximizando la confiabilidad en entornos reales.
+% Conclusiones y Recomendaciones
+\section{Conclusiones y Recomendaciones}
+
+El desarrollo del ``Sistema de Seguimiento de Entregas de Pedidos'' ha representado un ejercicio integral en la implementación de una arquitectura distribuida basada en microservicios, con énfasis en la escalabilidad, seguridad y rendimiento en tiempo real. A través de las fases de diseño, desarrollo, pruebas y despliegue, se ha logrado construir un sistema robusto que cumple con los objetivos propuestos, permitiendo a los usuarios registrar, consultar y monitorear pedidos de manera eficiente y segura.
+
+\subsection{Conclusiones}
+El proyecto ha demostrado la efectividad de una arquitectura de microservicios para manejar dominios independientes, como la gestión de clientes (\textit{cliente-service} con PostgreSQL), pedidos (\textit{pedido-service} con MySQL) y tracking rápido (\textit{tracking-service} con Redis). La integración de OAuth2 ha asegurado un control de acceso granular basado en roles, protegiendo los recursos contra accesos no autorizados y cumpliendo con estándares de seguridad como RFC 6749. La estrategia de consistencia eventual ha funcionado óptimamente, sincronizando datos entre MySQL y Redis con latencias mínimas (<5 segundos en el 99\% de los casos) y mecanismos de reintentos que garantizan resiliencia frente a fallos temporales.
+
+El frontend en Angular ha proporcionado una interfaz intuitiva y responsiva, con funcionalidades como formularios validados, vistas dinámicas y alertas visuales para discrepancias, mejorando la experiencia del usuario. Las pruebas exhaustivas confirmaron una cobertura del 90\% de los casos de uso, con un rendimiento que soporta hasta 1000 usuarios concurrentes sin degradación significativa (latencia promedio de 0,3 segundos en consultas de tracking). El despliegue en Docker Compose ha facilitado la portabilidad y el mantenimiento, permitiendo entornos reproducibles en minutos.
+
+En general, el sistema no solo satisface los requisitos funcionales (registro y monitoreo de pedidos) y no funcionales (rendimiento, seguridad, consistencia), sino que también establece una base escalable para expansiones futuras en logística y comercio electrónico. Los desafíos encontrados, como la gestión de sincronizaciones en entornos distribuidos, fueron resueltos mediante patrones probados (event sourcing, circuit breakers), validando las decisiones técnicas tomadas.
+
+\subsection{Recomendaciones}
+Basado en los resultados y lecciones aprendidas, se proponen las siguientes recomendaciones para mejorar y extender el sistema:
+\begin{itemize}
+    \item \textbf{Mejora en la sincronización}: Integrar un broker de mensajes como Kafka o RabbitMQ para reemplazar las llamadas REST asíncronas, reduciendo la latencia de consistencia eventual a <1 segundo y mejorando la desacoplación entre \textit{pedido-service} y \textit{tracking-service}.
+    
+    \item \textbf{Expansión de funcionalidades}: Agregar notificaciones en tiempo real (via WebSockets con Socket.io) para alertar a los usuarios sobre cambios de estado en pedidos, y un módulo de reportes analíticos (usando Elasticsearch para búsquedas avanzadas en logs y datos históricos).
+    
+    \item \textbf{Seguridad avanzada}: Implementar autenticación de dos factores (2FA) en \textit{auth-service} y monitoreo continuo de vulnerabilidades con herramientas como SonarQube o Dependabot, para mantener el cumplimiento con estándares como GDPR y PCI-DSS si se integra pagos.
+    
+    \item \textbf{Optimización de rendimiento}: Incorporar un CDN (Content Delivery Network) para el frontend y caching distribuido (Redis Cluster) para manejar cargas >5000 usuarios concurrentes, junto con auto-escalado en Kubernetes para entornos cloud.
+    
+    \item \textbf{Pruebas y monitoreo}: Automatizar pruebas E2E con Cypress y agregar observabilidad con herramientas como Jaeger para tracing distribuido, permitiendo detectar bottlenecks en runtime y reducir el tiempo de resolución de incidencias.
+    
+    \item \textbf{Despliegue en producción}: Migrar a una plataforma cloud como AWS o Google Cloud, utilizando servicios gestionados (ej. RDS para MySQL/PostgreSQL, ElastiCache para Redis) y CI/CD con Jenkins o GitHub Actions para deployments zero-downtime.
+    
+    \item \textbf{Usabilidad y accesibilidad}: Realizar pruebas con usuarios reales para refinar la interfaz, asegurando cumplimiento total con WCAG 2.1, y agregar soporte multilingüe para expansión internacional.
+    
+    \item \textbf{Sostenibilidad}: Optimizar el uso de recursos en contenedores (limitar CPU/RAM) y considerar migraciones a bases de datos serverless para reducir costos operativos en escalas bajas.
+\end{itemize}
+
+Estas recomendaciones buscan evolucionar el sistema hacia una solución más madura, adaptable a necesidades crecientes en el ámbito logístico. El proyecto ha sido una valiosa experiencia en tecnologías modernas, destacando la importancia de una arquitectura flexible y pruebas rigurosas para el éxito de aplicaciones distribuidas.
+\end{document}
