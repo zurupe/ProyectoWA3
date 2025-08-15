@@ -94,6 +94,12 @@
             <version>0.7.3</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- JWT decoder for OAuth2 Resource Server -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

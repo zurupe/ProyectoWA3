@@ -1,4 +1,5 @@
 com\proyecto\pedidoservice\config\SecurityConfig.class
+com\proyecto\pedidoservice\service\TrackingServiceClient.class
 com\proyecto\pedidoservice\service\PedidoService.class
 com\proyecto\pedidoservice\PedidoServiceApplication.class
 com\proyecto\pedidoservice\model\Pedido.class

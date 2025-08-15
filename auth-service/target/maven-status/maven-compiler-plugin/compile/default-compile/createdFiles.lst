@@ -7,6 +7,8 @@ com\proyecto\authservice\dto\UsuarioResponse.class
 com\proyecto\authservice\entity\Role.class
 com\proyecto\authservice\controller\AuthController.class
 com\proyecto\authservice\config\DataInitializer.class
+com\proyecto\authservice\config\CorsConfig$1.class
 com\proyecto\authservice\controller\HealthController.class
 com\proyecto\authservice\service\UsuarioService.class
 com\proyecto\authservice\dto\RegistroRequest.class
+com\proyecto\authservice\config\CorsConfig.class
