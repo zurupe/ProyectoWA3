@@ -6,6 +6,7 @@ com\proyecto\authservice\AuthServiceApplication.class
 com\proyecto\authservice\dto\UsuarioResponse.class
 com\proyecto\authservice\entity\Role.class
 com\proyecto\authservice\controller\AuthController.class
+com\proyecto\authservice\exception\GlobalExceptionHandler.class
 com\proyecto\authservice\config\DataInitializer.class
 com\proyecto\authservice\config\CorsConfig$1.class
 com\proyecto\authservice\controller\HealthController.class

@@ -1,3 +1,8 @@
+com\proyecto\trackingservice\config\SecurityConfig.class
+com\proyecto\trackingservice\config\CorsConfig.class
 com\proyecto\trackingservice\TrackingServiceApplication.class
 com\proyecto\trackingservice\service\TrackingService.class
+com\proyecto\trackingservice\exception\GlobalExceptionHandler.class
+com\proyecto\trackingservice\controller\TrackingController$PedidoDTO.class
 com\proyecto\trackingservice\controller\TrackingController.class
+com\proyecto\trackingservice\config\CorsConfig$1.class

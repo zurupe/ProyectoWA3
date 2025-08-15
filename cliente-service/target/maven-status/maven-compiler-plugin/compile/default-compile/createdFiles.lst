@@ -8,6 +8,9 @@ com\proyecto\clienteservice\dto\ClienteResponse.class
 com\proyecto\clienteservice\ClienteServiceApplication.class
 com\proyecto\clienteservice\config\DataInitializer.class
 com\proyecto\clienteservice\config\OpenApiConfig.class
+com\proyecto\clienteservice\exception\GlobalExceptionHandler.class
 com\proyecto\clienteservice\repository\ClienteRepository.class
 com\proyecto\clienteservice\entity\Cliente.class
+com\proyecto\clienteservice\config\CorsConfig.class
 com\proyecto\clienteservice\controller\HealthController.class
+com\proyecto\clienteservice\config\CorsConfig$1.class
