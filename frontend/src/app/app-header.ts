@@ -28,3 +28,4 @@ export class AppHeaderComponent {
     this.role = this.role === 'cliente' ? 'admin' : 'cliente';
   }
 }
+    
