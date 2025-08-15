@@ -54,10 +54,10 @@ public class PedidoService {
             Pedido pedido = pedidoOpt.get();
             pedido.setEstado(nuevoEstado);
             pedido.setFechaActualizacion(LocalDateTime.now());
-                Pedido actualizado = pedidoRepository.save(pedido);
-                // Consistencia eventual: notificar a tracking-service
-                notificarTrackingService(actualizado);
-                return actualizado;
+            Pedido actualizado = pedidoRepository.save(pedido);
+            // Consistencia eventual: notificar a tracking-service
+            notificarTrackingService(actualizado);
+            return actualizado;
         }
         throw new RuntimeException("Pedido no encontrado");
     }
@@ -66,25 +66,25 @@ public class PedidoService {
         return pedidoRepository.findAll();
     }
 
-        private void notificarTrackingService(Pedido pedido) {
-            // Obtener JWT del contexto de seguridad
-            String jwtToken = null;
-            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            if (principal instanceof Jwt) {
-                jwtToken = ((Jwt) principal).getTokenValue();
-            } else {
-                // Alternativamente, obtener del request si está en el header
-                ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-                if (attr != null) {
-                    HttpServletRequest request = attr.getRequest();
-                    String authHeader = request.getHeader("Authorization");
-                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                        jwtToken = authHeader.substring(7);
-                    }
+    private void notificarTrackingService(Pedido pedido) {
+        // Obtener JWT del contexto de seguridad
+        String jwtToken = null;
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof Jwt) {
+            jwtToken = ((Jwt) principal).getTokenValue();
+        } else {
+            // Alternativamente, obtener del request si está en el header
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attr != null) {
+                HttpServletRequest request = attr.getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    jwtToken = authHeader.substring(7);
                 }
             }
-            if (jwtToken != null) {
-                trackingServiceClient.actualizarTracking(pedido, jwtToken);
-            }
         }
+        if (jwtToken != null) {
+            trackingServiceClient.actualizarTracking(pedido, jwtToken);
+        }
+    }
 }
