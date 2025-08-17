@@ -1,1 +1,3 @@
 com\proyecto\gateway\GatewayApplication.class
+com\proyecto\gateway\SecurityConfig.class
+com\proyecto\gateway\HealthController.class
