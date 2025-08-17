@@ -68,8 +68,7 @@ public class AuthorizationServerConfig {
                                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                                                 new MediaTypeRequestMatcher(MediaType.APPLICATION_JSON)))
                                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-                http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                                .oidc(Customizer.withDefaults()); // Habilitar OpenID Connect 1.0
+                // OIDC deshabilitado, solo OAuth2 puro
                 http.setSharedObject(org.springframework.security.web.AuthenticationEntryPoint.class,
                                 new LoginUrlAuthenticationEntryPoint("/login"));
 
@@ -123,8 +122,6 @@ public class AuthorizationServerConfig {
                                 .redirectUri("http://localhost:4200/login/oauth2/code/frontend-client")
                                 .redirectUri("http://localhost:4200/authorized")
                                 .postLogoutRedirectUri("http://localhost:4200/")
-                                .scope(OidcScopes.OPENID)
-                                .scope(OidcScopes.PROFILE)
                                 .scope("read")
                                 .scope("write")
                                 .clientSettings(ClientSettings.builder()
@@ -160,8 +157,6 @@ public class AuthorizationServerConfig {
                                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                                 .redirectUri("http://localhost:8080/login/oauth2/code/test-client")
-                                .scope(OidcScopes.OPENID)
-                                .scope(OidcScopes.PROFILE)
                                 .scope("read")
                                 .scope("write")
                                 .clientSettings(ClientSettings.builder()
