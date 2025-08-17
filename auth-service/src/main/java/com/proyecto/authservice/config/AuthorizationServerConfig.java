@@ -20,20 +20,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import java.security.KeyPair;
@@ -62,16 +60,11 @@ public class AuthorizationServerConfig {
         @Order(1)
         public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
                         throws Exception {
+                // Aplica la configuración por defecto del Authorization Server
+                OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
                 http
-                                .authorizeHttpRequests(authorize -> authorize
-                                                .anyRequest().authenticated())
-                                .csrf(csrf -> csrf.ignoringRequestMatchers(
-                                                new MediaTypeRequestMatcher(MediaType.APPLICATION_JSON)))
+                                .csrf(csrf -> csrf.disable())
                                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-                // OIDC deshabilitado, solo OAuth2 puro
-                http.setSharedObject(org.springframework.security.web.AuthenticationEntryPoint.class,
-                                new LoginUrlAuthenticationEntryPoint("/login"));
-
                 return http.build();
         }
 
@@ -83,18 +76,17 @@ public class AuthorizationServerConfig {
         public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
                         throws Exception {
                 http
+                                .csrf(csrf -> csrf.disable())
                                 .authorizeHttpRequests((authorize) -> authorize
                                                 // Endpoints públicos
-                                                .requestMatchers("/api/auth/register", "/api/auth/public/**")
+                                                .requestMatchers("/api/auth/register", "/api/auth/public/**",
+                                                                "/api/auth/login")
                                                 .permitAll()
                                                 .requestMatchers("/actuator/**", "/health", "/error").permitAll()
                                                 .requestMatchers("/.well-known/**").permitAll()
                                                 // Endpoints protegidos
                                                 .requestMatchers("/api/auth/me", "/api/auth/users/**").authenticated()
                                                 .anyRequest().authenticated())
-                                // Desactivar CSRF para APIs REST
-                                .csrf(csrf -> csrf
-                                                .ignoringRequestMatchers("/api/**", "/oauth2/**", "/.well-known/**"))
                                 // Configurar para APIs REST y formulario web
                                 .formLogin(formLogin -> formLogin
                                                 .loginPage("/login")
