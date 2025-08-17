@@ -1,5 +1,8 @@
 package com.proyecto.authservice.config;
 
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -18,18 +21,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -41,6 +46,14 @@ import java.util.UUID;
 @Configuration
 @EnableWebSecurity
 public class AuthorizationServerConfig {
+        /**
+         * Codificador JWT
+         */
+        @Bean
+        public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
+                System.out.println("[DEBUG] Creando bean JwtEncoder en AuthorizationServerConfig");
+                return new NimbusJwtEncoder(jwkSource);
+        }
 
         /**
          * Configuración del servidor de autorización OAuth2
@@ -49,21 +62,16 @@ public class AuthorizationServerConfig {
         @Order(1)
         public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
                         throws Exception {
-                OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
+                http
+                                .authorizeHttpRequests(authorize -> authorize
+                                                .anyRequest().authenticated())
+                                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                                                new MediaTypeRequestMatcher(MediaType.APPLICATION_JSON)))
+                                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
                 http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                                 .oidc(Customizer.withDefaults()); // Habilitar OpenID Connect 1.0
-
-                // El bean JwtEncoder debe estar fuera de este método
-
-                http
-                                // Redirigir a la página de login para autenticación no autenticada
-                                .exceptionHandling((exceptions) -> exceptions
-                                                .defaultAuthenticationEntryPointFor(
-                                                                new LoginUrlAuthenticationEntryPoint("/login"),
-                                                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)))
-                                // Aceptar access tokens para user info y/o client registration
-                                .oauth2ResourceServer((resourceServer) -> resourceServer
-                                                .jwt(Customizer.withDefaults()));
+                http.setSharedObject(org.springframework.security.web.AuthenticationEntryPoint.class,
+                                new LoginUrlAuthenticationEntryPoint("/login"));
 
                 return http.build();
         }
