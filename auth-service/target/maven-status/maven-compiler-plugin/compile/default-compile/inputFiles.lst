@@ -1,13 +1,13 @@
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\dto\RegistroRequest.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\AuthorizationServerConfig.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\CorsConfig.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\AuthServiceApplication.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\service\UsuarioService.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\controller\AuthController.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\dto\UsuarioResponse.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\exception\GlobalExceptionHandler.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\repository\UsuarioRepository.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\DataInitializer.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\entity\Role.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\entity\Usuario.java
-C:\Users\OppaDev\Desktop\work-space\Apps\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\controller\HealthController.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\CorsConfig.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\controller\AuthController.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\dto\RegistroRequest.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\DataInitializer.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\repository\UsuarioRepository.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\controller\HealthController.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\entity\Role.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\entity\Usuario.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\dto\UsuarioResponse.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\AuthServiceApplication.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\config\AuthorizationServerConfig.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\service\UsuarioService.java
+C:\Users\OppaDev\Desktop\work-space\Aplicaciones Distribuidas\ProyectoWA3\auth-service\src\main\java\com\proyecto\authservice\exception\GlobalExceptionHandler.java
