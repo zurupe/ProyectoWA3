@@ -11,6 +11,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Configuración de seguridad OAuth2 Resource Server
@@ -45,7 +50,8 @@ public class SecurityConfig {
                 // Configurar OAuth2 Resource Server con JWT
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
-                                .decoder(jwtDecoder())))
+                                .decoder(jwtDecoder())
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())))
 
                 // Configurar manejo de sesiones como stateless
                 .sessionManagement(session -> session
@@ -60,5 +66,21 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+    }
+
+    /**
+     * Convertidor de autenticación JWT para extraer authorities del claim 'role'
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            String role = jwt.getClaimAsString("role");
+            if (role != null) {
+                return Collections.singletonList(new SimpleGrantedAuthority(role));
+            }
+            return Collections.emptyList();
+        });
+        return converter;
     }
 }

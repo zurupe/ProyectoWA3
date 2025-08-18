@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
       <h1>Sistema de Pedidos</h1>
       <nav class="app-nav">
         <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/clientes" routerLinkActive="active">Clientes</a>
         <a routerLink="/pedidos" routerLinkActive="active">Pedidos</a>
         <a routerLink="/tracking" routerLinkActive="active">Tracking</a>
         <a routerLink="/login" routerLinkActive="active">Salir</a>

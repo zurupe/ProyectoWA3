@@ -16,6 +16,11 @@ services:
       - ./db-init:/docker-entrypoint-initdb.d
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Base de datos MySQL para pedido-service
   mysql-db:
@@ -32,6 +37,11 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # Redis para tracking-service
   redis-db:
@@ -43,6 +53,11 @@ services:
       - redis_data:/data
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   # Microservicio de autenticación
   auth-service:
@@ -55,7 +70,8 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - postgres-db
+      postgres-db:
+        condition: service_healthy
 
   # Microservicio de clientes
   cliente-service:
@@ -72,8 +88,10 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - postgres-db
-      - auth-service
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
 
   # Microservicio de pedidos
   pedido-service:
@@ -91,9 +109,12 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - mysql-db
-      - auth-service
-      - tracking-service
+      mysql-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      tracking-service:
+        condition: service_started
 
   # Microservicio de tracking
   tracking-service:
@@ -108,8 +129,10 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - redis-db
-      - auth-service
+      redis-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
 
   # Frontend Angular
   frontend:

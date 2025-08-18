@@ -18,12 +18,14 @@ public class TrackingController {
     }
 
     @GetMapping("/{pedidoId}")
-    public String getEstadoPedido(@PathVariable String pedidoId) {
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE')")
+    public String getEstadoPedido(@PathVariable String pedidoId, @AuthenticationPrincipal Jwt jwt) {
         return trackingService.getEstadoPedido(pedidoId);
     }
 
     @PostMapping("/{pedidoId}")
-    public void actualizarEstadoPedido(@PathVariable String pedidoId, @RequestBody String estado) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public void actualizarEstadoPedido(@PathVariable String pedidoId, @RequestBody String estado, @AuthenticationPrincipal Jwt jwt) {
         trackingService.actualizarEstadoPedido(pedidoId, estado);
     }
 

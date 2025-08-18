@@ -1,0 +1,608 @@
+{
+	"info": {
+		"name": "Pedido Service - Sistema de Seguimiento de Pedidos",
+		"description": "Colección completa para el microservicio de gestión de pedidos.\n\n**Endpoints incluidos:**\n- CRUD de pedidos\n- Filtros por cliente y estado\n- Actualización de estados\n- Integración con tracking-service\n\n**Variables necesarias:**\n- `base_url`: http://localhost:8083\n- `access_token`: Token JWT del auth-service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_postman_id": "pedido-service-collection-2024"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8083",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "📦 Gestión de Pedidos",
+			"item": [
+				{
+					"name": "Crear Pedido",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"producto\": \"Laptop Gaming ASUS ROG\",\n    \"clienteId\": 1,\n    \"direccion\": \"Av. Principal 123, Quito, Ecuador\",\n    \"cantidad\": 1,\n    \"precio\": 1299.99,\n    \"estado\": \"PENDIENTE\",\n    \"observaciones\": \"Entrega en horario de oficina\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pedidos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos"]
+						},
+						"description": "Crear un nuevo pedido en el sistema."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Pedido created successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response contains pedido data', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('producto');",
+									"    pm.expect(jsonData).to.have.property('estado');",
+									"    ",
+									"    // Guardar ID para pruebas posteriores",
+									"    pm.collectionVariables.set('pedido_id', jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Obtener Todos los Pedidos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos"]
+						},
+						"description": "Obtener lista completa de todos los pedidos."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Obtener Pedido por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1"]
+						},
+						"description": "Obtener un pedido específico por su ID."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 404', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test('Response contains pedido data', function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.have.property('id');",
+									"        pm.expect(jsonData).to.have.property('producto');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🔍 Filtros y Búsquedas",
+			"item": [
+				{
+					"name": "Pedidos por Cliente",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/cliente/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "cliente", "1"]
+						},
+						"description": "Obtener todos los pedidos de un cliente específico."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is array of pedidos', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    ",
+									"    if (jsonData.length > 0) {",
+									"        pm.expect(jsonData[0]).to.have.property('clienteId');",
+									"        pm.expect(jsonData[0].clienteId).to.eql(1);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Pedidos por Estado - PENDIENTE",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/estado/PENDIENTE",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "estado", "PENDIENTE"]
+						},
+						"description": "Obtener todos los pedidos con estado PENDIENTE."
+					}
+				},
+				{
+					"name": "Pedidos por Estado - EN_PROCESO",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/estado/EN_PROCESO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "estado", "EN_PROCESO"]
+						},
+						"description": "Obtener todos los pedidos con estado EN_PROCESO."
+					}
+				},
+				{
+					"name": "Pedidos por Estado - ENVIADO",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/estado/ENVIADO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "estado", "ENVIADO"]
+						},
+						"description": "Obtener todos los pedidos con estado ENVIADO."
+					}
+				},
+				{
+					"name": "Pedidos por Estado - ENTREGADO",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/estado/ENTREGADO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "estado", "ENTREGADO"]
+						},
+						"description": "Obtener todos los pedidos con estado ENTREGADO."
+					}
+				}
+			]
+		},
+		{
+			"name": "🔄 Gestión de Estados",
+			"item": [
+				{
+					"name": "Actualizar Estado a EN_PROCESO",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1/estado?estado=EN_PROCESO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "EN_PROCESO"
+								}
+							]
+						},
+						"description": "Cambiar estado del pedido a EN_PROCESO."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Estado updated successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Estado changed to EN_PROCESO', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql('EN_PROCESO');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Actualizar Estado a ENVIADO",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1/estado?estado=ENVIADO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "ENVIADO"
+								}
+							]
+						},
+						"description": "Cambiar estado del pedido a ENVIADO."
+					}
+				},
+				{
+					"name": "Actualizar Estado a ENTREGADO",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1/estado?estado=ENTREGADO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "ENTREGADO"
+								}
+							]
+						},
+						"description": "Cambiar estado del pedido a ENTREGADO."
+					}
+				},
+				{
+					"name": "Actualizar Estado a CANCELADO",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1/estado?estado=CANCELADO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "CANCELADO"
+								}
+							]
+						},
+						"description": "Cambiar estado del pedido a CANCELADO."
+					}
+				}
+			]
+		},
+		{
+			"name": "🧪 Casos de Prueba",
+			"item": [
+				{
+					"name": "Crear Pedido con Datos Mínimos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"producto\": \"Mouse Inalámbrico\",\n    \"clienteId\": 1,\n    \"direccion\": \"Calle Secundaria 456\",\n    \"cantidad\": 2,\n    \"precio\": 25.99\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pedidos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos"]
+						},
+						"description": "Crear pedido solo con datos obligatorios."
+					}
+				},
+				{
+					"name": "Crear Pedido Completo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"producto\": \"Monitor 4K 27 pulgadas\",\n    \"clienteId\": 2,\n    \"direccion\": \"Av. Tecnológica 789, Guayaquil, Ecuador\",\n    \"cantidad\": 1,\n    \"precio\": 399.99,\n    \"estado\": \"PENDIENTE\",\n    \"observaciones\": \"Manejar con cuidado - frágil\",\n    \"fechaEntregaEstimada\": \"2024-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pedidos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos"]
+						},
+						"description": "Crear pedido con todos los campos disponibles."
+					}
+				},
+				{
+					"name": "Flujo Completo de Estados",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/{{pedido_id}}/estado?estado=EN_PROCESO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "{{pedido_id}}", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "EN_PROCESO"
+								}
+							]
+						},
+						"description": "Probar flujo completo usando variable pedido_id."
+					}
+				}
+			]
+		},
+		{
+			"name": "🧪 Error Cases",
+			"item": [
+				{
+					"name": "Acceso sin Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos"]
+						},
+						"description": "Intentar acceder sin token de autorización."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Access denied without token', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Pedido Inexistente",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/99999",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "99999"]
+						},
+						"description": "Buscar pedido que no existe."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Pedido not found', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Estado Inválido",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pedidos/1/estado?estado=ESTADO_INVALIDO",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pedidos", "1", "estado"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "ESTADO_INVALIDO"
+								}
+							]
+						},
+						"description": "Intentar actualizar con estado inválido."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Invalid estado rejected', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('Ejecutando request en Pedido Service...');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test('Response time is less than 5000ms', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});"
+				]
+			}
+		}
+	]
+}

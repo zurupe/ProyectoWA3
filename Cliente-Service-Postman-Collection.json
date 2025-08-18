@@ -1,0 +1,557 @@
+{
+	"info": {
+		"name": "Cliente Service - Sistema de Seguimiento de Pedidos",
+		"description": "Colección completa para el microservicio de gestión de clientes.\n\n**Endpoints incluidos:**\n- CRUD completo de clientes\n- Búsquedas y filtros\n- Gestión de estados\n- Validaciones\n- Estadísticas\n\n**Variables necesarias:**\n- `base_url`: http://localhost:8082\n- `access_token`: Token JWT del auth-service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_postman_id": "cliente-service-collection-2024"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "🔍 Health & Info",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/public/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "public", "health"]
+						},
+						"description": "Endpoint público para verificar el estado del servicio de clientes."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Service is UP', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('UP');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Service Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/public/info",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "public", "info"]
+						},
+						"description": "Información del servicio de clientes."
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Gestión de Clientes",
+			"item": [
+				{
+					"name": "Crear Cliente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Pérez\",\n    \"email\": \"juan.perez@email.com\",\n    \"telefono\": \"+593987654321\",\n    \"direccion\": \"Av. Principal 123\",\n    \"ciudad\": \"Quito\",\n    \"pais\": \"Ecuador\",\n    \"codigoPostal\": \"170101\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes"]
+						},
+						"description": "Crear un nuevo cliente en el sistema."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Cliente created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response contains client data', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('email');",
+									"    ",
+									"    // Guardar ID para pruebas posteriores",
+									"    pm.collectionVariables.set('cliente_id', jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Obtener Todos los Clientes (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes"]
+						},
+						"description": "Obtener lista completa de clientes (requiere rol ADMIN)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test('Response is array', function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.be.an('array');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Obtener Clientes Activos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/activos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "activos"]
+						},
+						"description": "Obtener lista de clientes activos."
+					}
+				},
+				{
+					"name": "Obtener Cliente por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "1"]
+						},
+						"description": "Obtener cliente específico por ID."
+					}
+				},
+				{
+					"name": "Obtener Cliente por Email",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/email/juan.perez@email.com",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "email", "juan.perez@email.com"]
+						},
+						"description": "Obtener cliente por dirección de email."
+					}
+				},
+				{
+					"name": "Actualizar Cliente (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Juan Carlos\",\n    \"apellido\": \"Pérez García\",\n    \"email\": \"juan.perez@email.com\",\n    \"telefono\": \"+593987654321\",\n    \"direccion\": \"Av. Principal 456\",\n    \"ciudad\": \"Guayaquil\",\n    \"pais\": \"Ecuador\",\n    \"codigoPostal\": \"090101\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clientes/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "1"]
+						},
+						"description": "Actualizar datos de un cliente existente (requiere rol ADMIN)."
+					}
+				},
+				{
+					"name": "Cambiar Estado Cliente (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/1/estado?activo=false",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "1", "estado"],
+							"query": [
+								{
+									"key": "activo",
+									"value": "false"
+								}
+							]
+						},
+						"description": "Activar o desactivar un cliente (requiere rol ADMIN)."
+					}
+				},
+				{
+					"name": "Eliminar Cliente (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "1"]
+						},
+						"description": "Eliminar un cliente del sistema (requiere rol ADMIN)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Cliente deleted or not found', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🔍 Búsquedas y Filtros",
+			"item": [
+				{
+					"name": "Buscar Clientes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/buscar?busqueda=Juan",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "buscar"],
+							"query": [
+								{
+									"key": "busqueda",
+									"value": "Juan"
+								}
+							]
+						},
+						"description": "Buscar clientes por nombre, apellido o email."
+					}
+				},
+				{
+					"name": "Clientes por Ciudad",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/ciudad/Quito",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "ciudad", "Quito"]
+						},
+						"description": "Obtener clientes de una ciudad específica."
+					}
+				},
+				{
+					"name": "Clientes por País",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/pais/Ecuador",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "pais", "Ecuador"]
+						},
+						"description": "Obtener clientes de un país específico."
+					}
+				}
+			]
+		},
+		{
+			"name": "✅ Validaciones",
+			"item": [
+				{
+					"name": "Verificar Email Disponible",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/verificar-email/nuevo@email.com",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "verificar-email", "nuevo@email.com"]
+						},
+						"description": "Verificar si un email está disponible para registro."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response contains email availability', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('email');",
+									"    pm.expect(jsonData).to.have.property('disponible');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📊 Estadísticas",
+			"item": [
+				{
+					"name": "Estadísticas de Clientes (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/estadisticas",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes", "estadisticas"]
+						},
+						"description": "Obtener estadísticas de clientes (requiere rol ADMIN)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Statistics retrieved or forbidden', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test('Response contains statistics', function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.have.property('clientesActivos');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🧪 Error Cases",
+			"item": [
+				{
+					"name": "Crear Cliente con Email Duplicado",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Test\",\n    \"apellido\": \"Duplicate\",\n    \"email\": \"juan.perez@email.com\",\n    \"telefono\": \"+593987654321\",\n    \"direccion\": \"Test Address\",\n    \"ciudad\": \"Test City\",\n    \"pais\": \"Test Country\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes"]
+						},
+						"description": "Intentar crear cliente con email ya existente."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Creation fails for duplicate email', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Acceso sin Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "clientes"]
+						},
+						"description": "Intentar acceder sin token de autorización."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Access denied without token', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('Ejecutando request en Cliente Service...');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test('Response time is less than 5000ms', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});"
+				]
+			}
+		}
+	]
+}

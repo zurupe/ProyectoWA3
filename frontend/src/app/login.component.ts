@@ -35,7 +35,9 @@ export class LoginComponent {
   login() {
     this.authService.login(this.credentials).subscribe({
       next: (res: any) => {
+        console.log('🔐 Login exitoso, token recibido:', !!res.access_token);
         localStorage.setItem('access_token', res.access_token);
+        console.log('💾 Token guardado en localStorage');
         this.router.navigate(['/dashboard']);
       },
       error: () => {

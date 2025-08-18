@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { PedidoRequest, PedidoResponse } from './models/pedido.model';
 
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
@@ -8,15 +9,46 @@ export class PedidoService {
 
   constructor(private http: HttpClient) {}
 
-  getPedidos(): Observable<any> {
-    return this.http.get(this.apiUrl);
+  /**
+   * Obtener todos los pedidos (solo admin)
+   */
+  getPedidos(): Observable<PedidoResponse[]> {
+    return this.http.get<PedidoResponse[]>(this.apiUrl);
   }
 
-  createPedido(pedido: any): Observable<any> {
-    return this.http.post(this.apiUrl, pedido);
+  /**
+   * Crear nuevo pedido
+   */
+  createPedido(pedido: PedidoRequest): Observable<PedidoResponse> {
+    return this.http.post<PedidoResponse>(this.apiUrl, pedido);
   }
 
-  getPedidoById(id: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/${id}`);
+  /**
+   * Obtener pedido por ID
+   */
+  getPedidoById(id: number): Observable<PedidoResponse> {
+    return this.http.get<PedidoResponse>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Obtener pedidos por cliente
+   */
+  getPedidosPorCliente(clienteId: number): Observable<PedidoResponse[]> {
+    return this.http.get<PedidoResponse[]>(`${this.apiUrl}/cliente/${clienteId}`);
+  }
+
+  /**
+   * Obtener pedidos por estado
+   */
+  getPedidosPorEstado(estado: string): Observable<PedidoResponse[]> {
+    return this.http.get<PedidoResponse[]>(`${this.apiUrl}/estado/${estado}`);
+  }
+
+  /**
+   * Actualizar estado del pedido (solo admin)
+   */
+  actualizarEstadoPedido(id: number, estado: string): Observable<PedidoResponse> {
+    const params = new HttpParams().set('estado', estado);
+    return this.http.put<PedidoResponse>(`${this.apiUrl}/${id}/estado`, null, { params });
   }
 }

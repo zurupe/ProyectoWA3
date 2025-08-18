@@ -19,6 +19,8 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -30,6 +32,12 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collection;
+import java.util.Collections;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -63,7 +71,7 @@ public class AuthorizationServerConfig {
                                                                 new MediaTypeRequestMatcher(MediaType.TEXT_HTML)))
                                 // Aceptar access tokens para user info y/o client registration
                                 .oauth2ResourceServer((resourceServer) -> resourceServer
-                                                .jwt(Customizer.withDefaults()));
+                                                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
                 return http.build();
         }
@@ -78,7 +86,7 @@ public class AuthorizationServerConfig {
                 http
                                 .authorizeHttpRequests((authorize) -> authorize
                                                 // Endpoints públicos
-                                                .requestMatchers("/api/auth/register", "/api/auth/public/**")
+                                                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/public/**")
                                                 .permitAll()
                                                 .requestMatchers("/actuator/**", "/health", "/error").permitAll()
                                                 .requestMatchers("/.well-known/**").permitAll()
@@ -93,7 +101,10 @@ public class AuthorizationServerConfig {
                                                 .loginPage("/login")
                                                 .permitAll())
                                 // Configurar HTTP Basic para APIs
-                                .httpBasic(Customizer.withDefaults());
+                                .httpBasic(Customizer.withDefaults())
+                                // Configurar OAuth2 Resource Server para validar JWT
+                                .oauth2ResourceServer(resourceServer -> resourceServer
+                                                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
                 return http.build();
         }
@@ -204,6 +215,14 @@ public class AuthorizationServerConfig {
         }
 
         /**
+         * Codificador JWT
+         */
+        @Bean
+        public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
+                return new NimbusJwtEncoder(jwkSource);
+        }
+
+        /**
          * Configuraciones del servidor de autorización
          */
         @Bean
@@ -219,5 +238,21 @@ public class AuthorizationServerConfig {
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
+        }
+
+        /**
+         * Convertidor de autenticación JWT para extraer authorities del claim 'role'
+         */
+        @Bean
+        public JwtAuthenticationConverter jwtAuthenticationConverter() {
+                JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+                converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+                        String role = jwt.getClaimAsString("role");
+                        if (role != null) {
+                                return Collections.singletonList(new SimpleGrantedAuthority(role));
+                        }
+                        return Collections.emptyList();
+                });
+                return converter;
         }
 }
