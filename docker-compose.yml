@@ -153,6 +153,22 @@ services:
       - pedido-service
       - tracking-service
 
+  # Microservicio Gateway
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "9001:9001"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - microservices-network
+    depends_on:
+      - auth-service
+      - cliente-service
+      - pedido-service
+      - tracking-service
+
 volumes:
   postgres_data:
   mysql_data:

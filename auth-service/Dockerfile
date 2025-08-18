@@ -7,7 +7,7 @@ LABEL maintainer="Sistema de Seguimiento de Pedidos"
 WORKDIR /app
 
 # Copiar el archivo JAR
-COPY target/auth-service-1.0.0.jar app.jar
+COPY target/oaut-server-0.0.1-SNAPSHOT.jar app.jar
 
 # Exponer el puerto
 EXPOSE 8081
