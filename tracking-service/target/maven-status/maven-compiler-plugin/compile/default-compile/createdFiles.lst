@@ -3,6 +3,9 @@ com\proyecto\trackingservice\config\CorsConfig.class
 com\proyecto\trackingservice\TrackingServiceApplication.class
 com\proyecto\trackingservice\service\TrackingService.class
 com\proyecto\trackingservice\exception\GlobalExceptionHandler.class
+com\proyecto\trackingservice\service\TrackingService$TrackingInfo.class
+com\proyecto\trackingservice\controller\TrackingController$EstadoRequest.class
 com\proyecto\trackingservice\controller\TrackingController$PedidoDTO.class
 com\proyecto\trackingservice\controller\TrackingController.class
+com\proyecto\trackingservice\service\TrackingService$HistorialEntry.class
 com\proyecto\trackingservice\config\CorsConfig$1.class

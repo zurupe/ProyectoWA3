@@ -5,8 +5,6 @@ import com.proyecto.authservice.dto.UsuarioResponse;
 import com.proyecto.authservice.entity.Role;
 import com.proyecto.authservice.entity.Usuario;
 import com.proyecto.authservice.service.UsuarioService;
-import com.proyecto.authservice.entity.RefreshToken;
-import com.proyecto.authservice.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,9 +35,6 @@ public class AuthController {
 
     @Autowired
     private JwtEncoder jwtEncoder;
-
-    @Autowired
-    private RefreshTokenService refreshTokenService;
 
     /**
      * Registro de nuevos usuarios
@@ -201,48 +196,7 @@ public class AuthController {
                 .claim("role", usuario.getRole().name())
                 .build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-
-        // Crear y guardar refresh token
-        refreshTokenService.deleteByUsername(username); // Solo uno por usuario
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(username);
-
-        return ResponseEntity.ok(Map.of(
-                "access_token", token,
-                "refresh_token", refreshToken.getToken(),
-                "expires_in", 3600));
-    }
-
-    /**
-     * Endpoint para refrescar el access token usando refresh token
-     */
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
-        String refreshTokenStr = request.get("refresh_token");
-        if (refreshTokenStr == null) {
-            return ResponseEntity.badRequest().body("Refresh token requerido");
-        }
-        RefreshToken refreshToken = refreshTokenService.findByToken(refreshTokenStr).orElse(null);
-        if (refreshToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token inválido");
-        }
-        if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
-            refreshTokenService.deleteByUsername(refreshToken.getUsername());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expirado");
-        }
-        // Generar nuevo access token
-        Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("http://localhost:8081")
-                .issuedAt(now)
-                .expiresAt(now.plusSeconds(3600))
-                .subject(refreshToken.getUsername())
-                .claim("role", usuarioService.buscarPorUsername(refreshToken.getUsername()).get().getRole().name())
-                .build();
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-        return ResponseEntity.ok(Map.of(
-                "access_token", token,
-                "refresh_token", refreshToken.getToken(),
-                "expires_in", 3600));
+        return ResponseEntity.ok(Map.of("access_token", token));
     }
 
     /**

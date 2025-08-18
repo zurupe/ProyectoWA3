@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -116,6 +117,21 @@ public class PedidoController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al obtener pedidos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Comparar discrepancias entre MySQL y Redis (solo admin)
+     */
+    @GetMapping("/compare-tracking")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> compararDiscrepancias() {
+        try {
+            Map<String, Object> discrepancias = pedidoService.compararTrackingDiscrepancias();
+            return ResponseEntity.ok(discrepancias);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al comparar discrepancias: " + e.getMessage());
         }
     }
 }

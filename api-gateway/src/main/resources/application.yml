@@ -1,0 +1,222 @@
+# Configuración del API Gateway
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+    
+  # Configuración Spring Cloud Gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: 
+              - "http://localhost:4200"
+              - "http://localhost:3000"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowed-headers:
+              - "*"
+            allow-credentials: true
+            max-age: 3600
+      
+      routes:
+        # Ruta para auth-service
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+            
+        # Ruta para cliente-service  
+        - id: cliente-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/clientes/**
+          filters:
+            - StripPrefix=0
+            
+        # Ruta para pedido-service
+        - id: pedido-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/pedidos/**
+          filters:
+            - StripPrefix=0
+            
+        # Ruta para tracking-service
+        - id: tracking-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/tracking/**
+          filters:
+            - StripPrefix=0
+            
+        # Ruta para OAuth2 endpoints (.well-known, jwks)
+        - id: oauth2-endpoints
+          uri: http://localhost:8081
+          predicates:
+            - Path=/oauth2/**,/.well-known/**
+          filters:
+            - StripPrefix=0
+            
+        # Ruta para actuator endpoints de cada servicio
+        - id: auth-actuator
+          uri: http://localhost:8081
+          predicates:
+            - Path=/auth/actuator/**
+          filters:
+            - RewritePath=/auth/actuator/(?<segment>.*), /actuator/$\{segment}
+            
+        - id: cliente-actuator
+          uri: http://localhost:8082
+          predicates:
+            - Path=/cliente/actuator/**
+          filters:
+            - RewritePath=/cliente/actuator/(?<segment>.*), /actuator/$\{segment}
+            
+        - id: pedido-actuator
+          uri: http://localhost:8083
+          predicates:
+            - Path=/pedido/actuator/**
+          filters:
+            - RewritePath=/pedido/actuator/(?<segment>.*), /actuator/$\{segment}
+            
+        - id: tracking-actuator
+          uri: http://localhost:8084
+          predicates:
+            - Path=/tracking/actuator/**
+          filters:
+            - RewritePath=/tracking/actuator/(?<segment>.*), /actuator/$\{segment}
+      
+      # Configuración de discovery (deshabilitado para desarrollo local)
+      discovery:
+        locator:
+          enabled: false
+          
+  # Configuración de seguridad OAuth2 Resource Server
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8081/oauth2/jwks
+
+# Configuración de logging
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.cors: DEBUG
+    org.springframework.security: INFO
+    org.springframework.cloud.gateway.filter: DEBUG
+    org.springframework.cloud.gateway.route: DEBUG
+    com.proyecto: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Configuración de actuator para monitoreo
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,metrics,routes
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+      
+# Información de la aplicación
+info:
+  app:
+    name: API Gateway
+    description: Gateway para el sistema de seguimiento de pedidos
+    version: 1.0.0
+
+---
+# Configuración para perfil Docker
+spring:
+  config:
+    activate:
+      on-profile: docker
+      
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: 
+              - "http://frontend:4200"
+              - "http://localhost:4200"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowed-headers:
+              - "*"
+            allow-credentials: true
+            max-age: 3600
+      
+      routes:
+        # Rutas para Docker (usando nombres de servicios)
+        - id: auth-service-docker
+          uri: http://auth-service:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+            
+        - id: cliente-service-docker
+          uri: http://cliente-service:8082
+          predicates:
+            - Path=/api/clientes/**
+          filters:
+            - StripPrefix=0
+            
+        - id: pedido-service-docker
+          uri: http://pedido-service:8083
+          predicates:
+            - Path=/api/pedidos/**
+          filters:
+            - StripPrefix=0
+            
+        - id: tracking-service-docker
+          uri: http://tracking-service:8084
+          predicates:
+            - Path=/api/tracking/**
+          filters:
+            - StripPrefix=0
+            
+        - id: oauth2-endpoints-docker
+          uri: http://auth-service:8081
+          predicates:
+            - Path=/oauth2/**,/.well-known/**
+          filters:
+            - StripPrefix=0
+            
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://auth-service:8081/oauth2/jwks
+
+server:
+  port: 8080
+
+# Configuración de logging para Docker (menos verbose)
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web.cors: WARN
+    org.springframework.security: WARN
+    com.proyecto: INFO

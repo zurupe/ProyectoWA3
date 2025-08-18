@@ -19,9 +19,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/**", "/health").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/tracking/**").authenticated()
+                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/error", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer -> 

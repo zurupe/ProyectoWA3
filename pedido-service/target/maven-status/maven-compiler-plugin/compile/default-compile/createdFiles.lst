@@ -1,10 +1,14 @@
 com\proyecto\pedidoservice\config\SecurityConfig.class
-com\proyecto\pedidoservice\service\TrackingServiceClient.class
+com\proyecto\pedidoservice\service\TrackingQueueService$ColaEstadisticas.class
 com\proyecto\pedidoservice\service\PedidoService.class
-com\proyecto\pedidoservice\PedidoServiceApplication.class
-com\proyecto\pedidoservice\exception\GlobalExceptionHandler.class
 com\proyecto\pedidoservice\model\Pedido.class
 com\proyecto\pedidoservice\config\CorsConfig$1.class
 com\proyecto\pedidoservice\config\CorsConfig.class
+com\proyecto\pedidoservice\service\TrackingServiceClient.class
+com\proyecto\pedidoservice\PedidoServiceApplication.class
+com\proyecto\pedidoservice\service\TrackingQueueService$TrackingQueueItem.class
+com\proyecto\pedidoservice\exception\GlobalExceptionHandler.class
+com\proyecto\pedidoservice\config\TrackingConfig.class
 com\proyecto\pedidoservice\controller\PedidoController.class
 com\proyecto\pedidoservice\repository\PedidoRepository.class
+com\proyecto\pedidoservice\service\TrackingQueueService.class

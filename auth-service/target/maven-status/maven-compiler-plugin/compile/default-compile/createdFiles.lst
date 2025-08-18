@@ -1,9 +1,7 @@
 com\proyecto\authservice\controller\AuthController$CheckResponse.class
 com\proyecto\authservice\config\AuthorizationServerConfig.class
-com\pf\authservice\config\CorsConfig.class
 com\proyecto\authservice\repository\UsuarioRepository.class
 com\proyecto\authservice\entity\Usuario.class
-com\pf\authservice\config\CorsConfig$1.class
 com\proyecto\authservice\AuthServiceApplication.class
 com\proyecto\authservice\dto\UsuarioResponse.class
 com\proyecto\authservice\entity\Role.class

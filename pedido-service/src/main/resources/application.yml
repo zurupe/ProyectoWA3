@@ -54,6 +54,18 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# Configuración de tracking service
+tracking:
+  service:
+    url: http://localhost:8084/api/tracking/update
+    base:
+      url: http://localhost:8084
+
+# Configuración de cliente service
+cliente:
+  service:
+    url: http://localhost:8082
     
 ---
 
@@ -76,3 +88,15 @@ spring:
 
 server:
   port: ${SERVER_PORT:8083}
+
+# Configuración de tracking service para Docker
+tracking:
+  service:
+    url: ${TRACKING_SERVICE_URL:http://tracking-service:8084}/api/tracking/update
+    base:
+      url: ${TRACKING_SERVICE_URL:http://tracking-service:8084}
+
+# Configuración de cliente service para Docker
+cliente:
+  service:
+    url: ${CLIENTE_SERVICE_URL:http://cliente-service:8082}

@@ -1,9 +1,5 @@
 @echo off
-REM Script para compilar todos los microservicios y el api-gateway con mvn clean package -DskipTests
-
-cd /d "%~dp0gateway"
-echo Compilando gateway...
-mvn clean package -DskipTests
+REM Script para compilar todos los microservicios con mvn clean package -DskipTests
 
 cd /d "%~dp0auth-service"
 echo Compilando auth-service...
@@ -21,5 +17,8 @@ cd /d "%~dp0tracking-service"
 echo Compilando tracking-service...
 mvn clean package -DskipTests
 
-echo Compilación de todos los microservicios y el api-gateway finalizada.
+cd /d "%~dp0api-gateway"
+echo Compilando api-gateway...mvn clean package -DskipTests
+
+echo Compilación de todos los microservicios finalizada.
 pause

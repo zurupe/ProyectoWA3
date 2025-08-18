@@ -1,0 +1,1632 @@
+{
+	"info": {
+		"_postman_id": "sistema-seguimiento-pedidos-001",
+		"name": "Sistema de Seguimiento de Pedidos - API Gateway",
+		"description": "Colección completa para testing del sistema distribuido de seguimiento de entregas de pedidos.\n\n**Arquitectura:**\n- API Gateway (Puerto 8080) como punto de entrada único\n- Auth Service (OAuth2 + JWT)\n- Cliente Service (PostgreSQL)\n- Pedido Service (MySQL)\n- Tracking Service (Redis)\n- Consistencia Eventual entre servicios\n\n**Roles:**\n- ROLE_ADMIN: Acceso completo\n- ROLE_CLIENTE: Acceso limitado\n\n**Flujo de Testing:**\n1. Registrar usuarios\n2. Obtener tokens JWT\n3. Gestionar clientes\n4. Crear y gestionar pedidos\n5. Verificar tracking en tiempo real\n6. Validar consistencia eventual",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "gateway_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "client_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "client_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "pedido_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 1. AUTENTICACIÓN Y USUARIOS",
+			"description": "Endpoints para registro de usuarios, login y gestión de tokens JWT",
+			"item": [
+				{
+					"name": "Gateway Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Gateway is UP\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"UP\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/gateway/health",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"gateway",
+								"health"
+							]
+						},
+						"description": "Verificar que el API Gateway esté funcionando correctamente"
+					}
+				},
+				{
+					"name": "Registrar Usuario Administrador",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Admin user created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\",\n    \"email\": \"admin@empresa.com\",\n    \"nombre\": \"Administrador\",\n    \"apellido\": \"Sistema\",\n    \"role\": \"ROLE_ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Registrar un usuario con rol de administrador"
+					}
+				},
+				{
+					"name": "Registrar Usuario Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client user created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"cliente1\",\n    \"password\": \"cliente123\",\n    \"email\": \"cliente1@correo.com\",\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Pérez\",\n    \"role\": \"ROLE_CLIENTE\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Registrar un usuario con rol de cliente"
+					}
+				},
+				{
+					"name": "Login Administrador",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Admin login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.access_token).to.exist;",
+									"    pm.collectionVariables.set(\"admin_token\", jsonData.access_token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Obtener token JWT para el administrador"
+					}
+				},
+				{
+					"name": "Login Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.access_token).to.exist;",
+									"    pm.collectionVariables.set(\"client_token\", jsonData.access_token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"cliente1\",\n    \"password\": \"cliente123\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Obtener token JWT para el cliente"
+					}
+				},
+				{
+					"name": "Obtener Perfil Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Admin profile retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.username).to.eql(\"admin\");",
+									"    pm.expect(jsonData.role).to.eql(\"ROLE_ADMIN\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/me",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Verificar perfil del administrador autenticado"
+					}
+				},
+				{
+					"name": "Listar Usuarios (Solo Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Users listed successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/usuarios",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"usuarios"
+							]
+						},
+						"description": "Listar todos los usuarios (solo administradores)"
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 2. GESTIÓN DE CLIENTES",
+			"description": "Endpoints para gestión de clientes usando PostgreSQL",
+			"item": [
+				{
+					"name": "Crear Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client created successfully\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.collectionVariables.set(\"client_id\", jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"María\",\n    \"apellido\": \"González\",\n    \"email\": \"maria.gonzalez@correo.com\",\n    \"telefono\": \"+34123456789\",\n    \"direccion\": \"Calle Principal 123\",\n    \"ciudad\": \"Madrid\",\n    \"pais\": \"España\",\n    \"codigoPostal\": \"28001\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/clientes",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"clientes"
+							]
+						},
+						"description": "Crear un nuevo cliente en la base de datos PostgreSQL"
+					}
+				},
+				{
+					"name": "Listar Todos los Clientes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Clients retrieved successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/clientes",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"clientes"
+							]
+						},
+						"description": "Obtener lista de todos los clientes"
+					}
+				},
+				{
+					"name": "Obtener Cliente por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client retrieved by ID\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.expect(jsonData.email).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/clientes/{{client_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{client_id}}"
+							]
+						},
+						"description": "Obtener un cliente específico por su ID"
+					}
+				},
+				{
+					"name": "Verificar Email Disponible",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Email availability checked\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.existe).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/clientes/email/test@example.com",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"email",
+								"test@example.com"
+							]
+						},
+						"description": "Verificar si un email ya existe en la base de datos"
+					}
+				},
+				{
+					"name": "Estadísticas de Clientes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client statistics retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.totalClientes).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/clientes/estadisticas",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"estadisticas"
+							]
+						},
+						"description": "Obtener estadísticas generales de clientes"
+					}
+				}
+			]
+		},
+		{
+			"name": "📦 3. GESTIÓN DE PEDIDOS",
+			"description": "Endpoints para gestión de pedidos usando MySQL",
+			"item": [
+				{
+					"name": "Crear Pedido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order created successfully\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.expect(jsonData.estado).to.eql(\"PENDIENTE\");",
+									"    pm.collectionVariables.set(\"pedido_id\", jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"producto\": \"Laptop Dell XPS 13\",\n    \"clienteId\": {{client_id}},\n    \"direccion\": \"Calle Principal 123, Madrid, España\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos"
+							]
+						},
+						"description": "Crear un nuevo pedido. Esto debería activar la consistencia eventual con tracking-service"
+					}
+				},
+				{
+					"name": "Listar Todos los Pedidos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Orders retrieved successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos"
+							]
+						},
+						"description": "Obtener lista de todos los pedidos"
+					}
+				},
+				{
+					"name": "Obtener Pedido por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order retrieved by ID\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.expect(jsonData.producto).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/{{pedido_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}"
+							]
+						},
+						"description": "Obtener un pedido específico por su ID"
+					}
+				},
+				{
+					"name": "Actualizar Estado de Pedido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order status updated\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"PROCESANDO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estado\": \"PROCESANDO\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/{{pedido_id}}/estado",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}",
+								"estado"
+							]
+						},
+						"description": "Actualizar el estado de un pedido. Esto debería activar la consistencia eventual"
+					}
+				},
+				{
+					"name": "Obtener Pedidos por Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Orders by client retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/cliente/{{client_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"cliente",
+								"{{client_id}}"
+							]
+						},
+						"description": "Obtener todos los pedidos de un cliente específico"
+					}
+				},
+				{
+					"name": "Obtener Pedidos por Estado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Orders by status retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/estado/PROCESANDO",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"estado",
+								"PROCESANDO"
+							]
+						},
+						"description": "Obtener todos los pedidos con un estado específico"
+					}
+				}
+			]
+		},
+		{
+			"name": "🚚 4. TRACKING DE PEDIDOS",
+			"description": "Endpoints para tracking rápido usando Redis (<0.5s)",
+			"item": [
+				{
+					"name": "Consultar Estado de Pedido (Redis)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tracking info retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.pedidoId).to.exist;",
+									"    pm.expect(jsonData.estado).to.exist;",
+									"    pm.expect(jsonData.fechaActualizacion).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{client_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/{{pedido_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"{{pedido_id}}"
+							]
+						},
+						"description": "Consulta rápida del estado de un pedido desde Redis"
+					}
+				},
+				{
+					"name": "Actualizar Estado Directamente (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tracking updated directly\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estado\": \"EN_TRANSITO\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/{{pedido_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"{{pedido_id}}"
+							]
+						},
+						"description": "Actualización directa del estado en Redis (solo admin)"
+					}
+				},
+				{
+					"name": "Obtener Historial de Pedido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order history retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{client_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/{{pedido_id}}/historial",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"{{pedido_id}}",
+								"historial"
+							]
+						},
+						"description": "Obtener el historial completo de cambios de estado"
+					}
+				},
+				{
+					"name": "Estadísticas de Tracking (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tracking statistics retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.totalPedidosTrackeados).to.exist;",
+									"    pm.expect(jsonData.estadosDistribucion).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/estadisticas",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"estadisticas"
+							]
+						},
+						"description": "Obtener estadísticas generales de tracking"
+					}
+				}
+			]
+		},
+		{
+			"name": "🔄 5. CONSISTENCIA EVENTUAL",
+			"description": "Endpoints para verificar y gestionar la consistencia entre MySQL y Redis",
+			"item": [
+				{
+					"name": "Comparar Discrepancias MySQL vs Redis",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Consistency check completed\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.totalPedidos).to.exist;",
+									"    pm.expect(jsonData.discrepanciasEncontradas).to.exist;",
+									"    pm.expect(jsonData.consistenciaPercentage).to.exist;",
+									"    pm.expect(jsonData.estado).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/discrepancias",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"discrepancias"
+							]
+						},
+						"description": "Comparar estados entre MySQL y Redis para detectar inconsistencias"
+					}
+				},
+				{
+					"name": "Forzar Sincronización Manual",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Manual sync triggered\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": {{pedido_id}},\n    \"estado\": \"EN_TRANSITO\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/update",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"update"
+							]
+						},
+						"description": "Endpoint interno para forzar sincronización manual (usado por pedido-service)"
+					}
+				},
+				{
+					"name": "Estadísticas Cola de Sincronización",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Queue stats retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.itemsPendientes).to.exist;",
+									"    pm.expect(jsonData.totalProcesados).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/cola/estadisticas",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"cola",
+								"estadisticas"
+							]
+						},
+						"description": "Obtener estadísticas de la cola local de sincronización"
+					}
+				}
+			]
+		},
+		{
+			"name": "🛡️ 6. OAUTH2 Y SEGURIDAD",
+			"description": "Endpoints para testing de OAuth2 y verificación de seguridad",
+			"item": [
+				{
+					"name": "OAuth2 Well-Known Configuration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"OAuth2 configuration available\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.issuer).to.exist;",
+									"    pm.expect(jsonData.token_endpoint).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/.well-known/openid-configuration",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								".well-known",
+								"openid-configuration"
+							]
+						},
+						"description": "Obtener configuración OAuth2 del authorization server"
+					}
+				},
+				{
+					"name": "JWT Keys (JWKS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"JWKS available\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.keys).to.exist;",
+									"    pm.expect(jsonData.keys.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/oauth2/jwks",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"oauth2",
+								"jwks"
+							]
+						},
+						"description": "Obtener claves públicas JWT para verificación de tokens"
+					}
+				},
+				{
+					"name": "Acceso Denegado sin Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Access denied without token\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos"
+							]
+						},
+						"description": "Verificar que se requiere autenticación para endpoints protegidos"
+					}
+				},
+				{
+					"name": "Acceso Denegado - Cliente sin Permisos Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Client access denied to admin endpoints\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{client_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/auth/usuarios",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"usuarios"
+							]
+						},
+						"description": "Verificar control de acceso basado en roles"
+					}
+				}
+			]
+		},
+		{
+			"name": "🏥 7. HEALTH CHECKS Y MONITOREO",
+			"description": "Endpoints para verificar el estado de todos los servicios",
+			"item": [
+				{
+					"name": "Gateway Routes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Gateway routes listed\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.totalRoutes).to.exist;",
+									"    pm.expect(jsonData.routes).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/gateway/routes",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"gateway",
+								"routes"
+							]
+						},
+						"description": "Listar todas las rutas configuradas en el gateway"
+					}
+				},
+				{
+					"name": "Gateway Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Gateway info retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.exist;",
+									"    pm.expect(jsonData.services).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/gateway/info",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"gateway",
+								"info"
+							]
+						},
+						"description": "Obtener información general del sistema"
+					}
+				},
+				{
+					"name": "Actuator Health Gateway",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Gateway health check\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"UP\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/actuator/health",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"description": "Health check del API Gateway"
+					}
+				},
+				{
+					"name": "Tracking Service Health",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tracking service health\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"UP\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/health",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"health"
+							]
+						},
+						"description": "Health check específico del tracking service"
+					}
+				}
+			]
+		},
+		{
+			"name": "🧪 8. FLUJO COMPLETO DE TESTING",
+			"description": "Secuencia completa para testing del sistema end-to-end",
+			"item": [
+				{
+					"name": "PASO 1 - Estado Inicial EN_TRANSITO",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order status updated to EN_TRANSITO\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"EN_TRANSITO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estado\": \"EN_TRANSITO\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/{{pedido_id}}/estado",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}",
+								"estado"
+							]
+						},
+						"description": "1. Actualizar pedido a EN_TRANSITO en MySQL"
+					}
+				},
+				{
+					"name": "PASO 2 - Verificar Tracking Redis (Esperar 2s)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Esperar 2 segundos para que se complete la sincronización",
+									"setTimeout(function(){}, 2000);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Redis tracking updated\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"EN_TRANSITO\");",
+									"});",
+									"",
+									"pm.test(\"Response time < 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{client_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/{{pedido_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"{{pedido_id}}"
+							]
+						},
+						"description": "2. Verificar que Redis se actualizó automáticamente (< 0.5s)"
+					}
+				},
+				{
+					"name": "PASO 3 - Verificar Consistencia",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"System is consistent\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"CONSISTENTE\");",
+									"    pm.expect(jsonData.discrepanciasEncontradas).to.eql(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/discrepancias",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"discrepancias"
+							]
+						},
+						"description": "3. Verificar que no hay discrepancias entre MySQL y Redis"
+					}
+				},
+				{
+					"name": "PASO 4 - Finalizar Pedido ENTREGADO",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Order delivered successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"ENTREGADO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estado\": \"ENTREGADO\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/api/pedidos/{{pedido_id}}/estado",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}",
+								"estado"
+							]
+						},
+						"description": "4. Marcar pedido como ENTREGADO"
+					}
+				},
+				{
+					"name": "PASO 5 - Verificar Historial Completo",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Esperar para sincronización",
+									"setTimeout(function(){}, 1000);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Complete order history available\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.length).to.be.greaterThan(2);",
+									"    // Verificar que el historial incluye los cambios",
+									"    var estados = jsonData.map(entry => entry.estadoNuevo);",
+									"    pm.expect(estados).to.include(\"ENTREGADO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{client_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/api/tracking/{{pedido_id}}/historial",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"api",
+								"tracking",
+								"{{pedido_id}}",
+								"historial"
+							]
+						},
+						"description": "5. Verificar historial completo de cambios"
+					}
+				}
+			]
+		}
+	]
+}
