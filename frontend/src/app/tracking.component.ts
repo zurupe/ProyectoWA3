@@ -57,7 +57,7 @@ import { FormsModule } from '@angular/forms';
             <strong>Pedido ID:</strong> {{ pedidoIdConsultado }}
           </div>
           <div class="estado-container">
-            <span class="estado-badge" [class]="'estado-' + estadoActual.toLowerCase()">
+            <span class="estado-badge" [class]="estadoActual ? 'estado-' + estadoActual.toLowerCase() : ''">
               {{ estadoActual }}
             </span>
           </div>
@@ -83,14 +83,14 @@ import { FormsModule } from '@angular/forms';
           <div class="sources-comparison">
             <div class="source-info">
               <h4>MySQL (Fuente Autoritativa)</h4>
-              <span class="estado-badge" [class]="'estado-' + consistencyCheck.estadoMySQL.toLowerCase()">
+              <span class="estado-badge" [class]="consistencyCheck.estadoMySQL ? 'estado-' + consistencyCheck.estadoMySQL.toLowerCase() : ''">
                 {{ consistencyCheck.estadoMySQL }}
               </span>
             </div>
             
             <div class="source-info">
               <h4>Redis (Consulta Rápida)</h4>
-              <span class="estado-badge" [class]="'estado-' + consistencyCheck.estadoRedis.toLowerCase()">
+              <span class="estado-badge" [class]="consistencyCheck.estadoRedis ? 'estado-' + consistencyCheck.estadoRedis.toLowerCase() : ''">
                 {{ consistencyCheck.estadoRedis }}
               </span>
             </div>

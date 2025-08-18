@@ -26,8 +26,10 @@ export class TrackingService {
   /**
    * Obtener estado de tracking por ID de pedido (desde Redis)
    */
-  getEstadoPedido(pedidoId: string | number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${pedidoId}`);
+  getEstadoPedido(pedidoId: string | number): Observable<string> {
+    return this.http.get<any>(`${this.apiUrl}/${pedidoId}`).pipe(
+      map(response => response.estado)
+    );
   }
 
   /**
@@ -45,7 +47,7 @@ export class TrackingService {
   verificarConsistencia(pedidoId: string | number): Observable<ConsistencyCheck> {
     return forkJoin({
       mysql: this.getEstadoPedidoMySQL(pedidoId),
-      redis: this.getEstadoPedido(pedidoId).pipe(map(tracking => tracking.estado))
+      redis: this.getEstadoPedido(pedidoId)
     }).pipe(
       map(({ mysql, redis }) => ({
         pedidoId: Number(pedidoId),
