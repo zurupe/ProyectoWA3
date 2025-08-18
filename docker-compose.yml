@@ -161,10 +161,7 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - auth-service
-      - cliente-service
-      - pedido-service
-      - tracking-service
+      - api-gateway
 
 volumes:
   postgres_data:
