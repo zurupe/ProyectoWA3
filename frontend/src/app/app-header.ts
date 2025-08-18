@@ -1,5 +1,6 @@
+
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-header',
@@ -12,7 +13,7 @@ import { RouterLink } from '@angular/router';
         <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
         <a routerLink="/pedidos" routerLinkActive="active">Pedidos</a>
         <a routerLink="/tracking" routerLinkActive="active">Tracking</a>
-        <a routerLink="/login" routerLinkActive="active">Salir</a>
+        <button class="logout-btn" (click)="logout()">Salir</button>
       </nav>
       <div class="role-switch">
         <span>Rol actual: <strong>{{ role }}</strong></span>
@@ -24,8 +25,15 @@ import { RouterLink } from '@angular/router';
 })
 export class AppHeaderComponent {
   role: string = 'cliente';
+  constructor(private router: Router) {}
+
   toggleRole() {
     this.role = this.role === 'cliente' ? 'admin' : 'cliente';
+  }
+
+  logout() {
+    localStorage.removeItem('access_token');
+    this.router.navigate(['/login']);
   }
 }
     

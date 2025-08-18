@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ClienteService } from './cliente.service';
 import { CommonModule } from '@angular/common';
 
@@ -37,10 +37,12 @@ import { CommonModule } from '@angular/common';
     </div>
   `
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   clientes: any[] = [];
 
-  constructor(private clienteService: ClienteService) {
+  constructor(private clienteService: ClienteService) {}
+
+  ngOnInit() {
     this.cargarClientes();
   }
 

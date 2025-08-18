@@ -3,22 +3,63 @@ import {
   HttpEvent,
   HttpInterceptor,
   HttpHandler,
-  HttpRequest
+  HttpRequest,
+  HttpErrorResponse
 } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
+  constructor(private authService: AuthService, private router: Router) {}
+
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = localStorage.getItem('access_token');
+    let authReq = req;
     if (token) {
-      const cloned = req.clone({
+      authReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
-      return next.handle(cloned);
     }
-    return next.handle(req);
+    return next.handle(authReq).pipe(
+      catchError((error: any) => {
+        if (error instanceof HttpErrorResponse && error.status === 401) {
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (refreshToken) {
+            // Intentar refrescar el token
+            return this.authService.refreshToken().pipe(
+              switchMap((res: any) => {
+                if (res.access_token) {
+                  const retryReq = req.clone({
+                    setHeaders: {
+                      Authorization: `Bearer ${res.access_token}`
+                    }
+                  });
+                  return next.handle(retryReq);
+                } else {
+                  this.authService.logout();
+                  this.router.navigate(['/login']);
+                  return throwError(() => error);
+                }
+              }),
+              catchError(err => {
+                this.authService.logout();
+                this.router.navigate(['/login']);
+                return throwError(() => err);
+              })
+            );
+          } else {
+            this.authService.logout();
+            this.router.navigate(['/login']);
+            return throwError(() => error);
+          }
+        }
+        return throwError(() => error);
+      })
+    );
   }
 }
