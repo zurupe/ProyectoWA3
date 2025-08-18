@@ -26,8 +26,8 @@ export class TrackingService {
   /**
    * Obtener estado de tracking por ID de pedido (desde Redis)
    */
-  getEstadoPedido(pedidoId: string | number): Observable<string> {
-    return this.http.get(`${this.apiUrl}/${pedidoId}`, { responseType: 'text' });
+  getEstadoPedido(pedidoId: string | number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${pedidoId}`);
   }
 
   /**
@@ -45,7 +45,7 @@ export class TrackingService {
   verificarConsistencia(pedidoId: string | number): Observable<ConsistencyCheck> {
     return forkJoin({
       mysql: this.getEstadoPedidoMySQL(pedidoId),
-      redis: this.getEstadoPedido(pedidoId)
+      redis: this.getEstadoPedido(pedidoId).pipe(map(tracking => tracking.estado))
     }).pipe(
       map(({ mysql, redis }) => ({
         pedidoId: Number(pedidoId),
@@ -61,16 +61,28 @@ export class TrackingService {
    * Actualizar estado de tracking (solo admin)
    */
   actualizarEstadoPedido(pedidoId: string | number, estado: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${pedidoId}`, estado, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return this.http.post<void>(`${this.apiUrl}/sync/${pedidoId}`, { estado });
+  }
+
+  /**
+   * Crear tracking desde pedido
+   */
+  crearTrackingDesdePedido(pedidoId: string | number, estado: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/create-from-pedido/${pedidoId}`, { estado });
+  }
+
+  /**
+   * Sincronizar tracking hacia pedido
+   */
+  sincronizarHaciaPedido(pedidoId: string | number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sync-to-pedido/${pedidoId}`, {});
   }
 
   /**
    * Actualizar tracking desde pedido-service
    */
   actualizarTracking(trackingData: TrackingUpdate): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/update`, trackingData);
+    return this.http.put<void>(`${this.apiUrl}/${trackingData.id}`, { estado: trackingData.estado });
   }
 
   /**

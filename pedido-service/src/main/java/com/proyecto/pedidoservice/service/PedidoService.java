@@ -189,23 +189,27 @@ public class PedidoService {
                 try {
                     // Consultar estado en Redis
                     String trackingUrl = trackingServiceBaseUrl + "/api/tracking/" + pedido.getId();
-                    org.springframework.http.ResponseEntity<Map> trackingResponse = 
-                        restTemplate.exchange(trackingUrl, org.springframework.http.HttpMethod.GET, entity, Map.class);
+                    org.springframework.http.ResponseEntity<String> trackingResponse = 
+                        restTemplate.exchange(trackingUrl, org.springframework.http.HttpMethod.GET, entity, String.class);
                     
                     if (trackingResponse.getStatusCode().is2xxSuccessful() && trackingResponse.getBody() != null) {
-                        Map<String, Object> trackingData = trackingResponse.getBody();
-                        String estadoRedis = (String) trackingData.get("estado");
-                        String estadoMySQL = pedido.getEstado();
-                        
-                        if (!Objects.equals(estadoMySQL, estadoRedis)) {
-                            discrepanciasEncontradas++;
-                            Map<String, Object> discrepancia = new HashMap<>();
-                            discrepancia.put("pedidoId", pedido.getId());
-                            discrepancia.put("estadoMySQL", estadoMySQL);
-                            discrepancia.put("estadoRedis", estadoRedis);
-                            discrepancia.put("producto", pedido.getProducto());
-                            discrepancia.put("fechaActualizacion", pedido.getFechaActualizacion());
-                            discrepancias.add(discrepancia);
+                        // Parse manual del JSON response
+                        String responseBody = trackingResponse.getBody();
+                        if (responseBody.contains("\"estado\"")) {
+                            // Extract estado from JSON response
+                            String estadoRedis = extractEstadoFromJson(responseBody);
+                            String estadoMySQL = pedido.getEstado();
+                            
+                            if (!Objects.equals(estadoMySQL, estadoRedis)) {
+                                discrepanciasEncontradas++;
+                                Map<String, Object> discrepancia = new HashMap<>();
+                                discrepancia.put("pedidoId", pedido.getId());
+                                discrepancia.put("estadoMySQL", estadoMySQL);
+                                discrepancia.put("estadoRedis", estadoRedis);
+                                discrepancia.put("producto", pedido.getProducto());
+                                discrepancia.put("fechaActualizacion", pedido.getFechaActualizacion());
+                                discrepancias.add(discrepancia);
+                            }
                         }
                     } else {
                         // Pedido existe en MySQL pero no en Redis
@@ -245,5 +249,182 @@ public class PedidoService {
         }
         
         return resultado;
+    }
+    
+    /**
+     * Sincronizar todos los pedidos inconsistentes
+     */
+    public Map<String, Object> sincronizarTodosLosPedidos() {
+        Map<String, Object> resultado = new HashMap<>();
+        List<String> sincronizados = new ArrayList<>();
+        List<String> errores = new ArrayList<>();
+        
+        try {
+            // Obtener discrepancias primero
+            Map<String, Object> discrepancias = compararTrackingDiscrepancias();
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> listaDiscrepancias = (List<Map<String, Object>>) discrepancias.get("discrepancias");
+            
+            if (listaDiscrepancias == null || listaDiscrepancias.isEmpty()) {
+                resultado.put("message", "No hay discrepancias para sincronizar");
+                resultado.put("sincronizados", 0);
+                resultado.put("errores", 0);
+                return resultado;
+            }
+            
+            // Obtener JWT token
+            String jwtToken = null;
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof Jwt) {
+                jwtToken = ((Jwt) principal).getTokenValue();
+            }
+            
+            if (jwtToken == null) {
+                resultado.put("error", "No se pudo obtener JWT token para sincronización");
+                return resultado;
+            }
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            // Sincronizar cada discrepancia
+            for (Map<String, Object> discrepancia : listaDiscrepancias) {
+                try {
+                    Object pedidoIdObj = discrepancia.get("pedidoId");
+                    String estadoMySQL = (String) discrepancia.get("estadoMySQL");
+                    String estadoRedis = (String) discrepancia.get("estadoRedis");
+                    
+                    if (pedidoIdObj != null && estadoMySQL != null) {
+                        String pedidoId = pedidoIdObj.toString();
+                        
+                        if ("NO_ENCONTRADO".equals(estadoRedis)) {
+                            // Crear tracking desde pedido
+                            Map<String, String> requestBody = Map.of("estado", estadoMySQL);
+                            org.springframework.http.HttpEntity<Map<String, String>> entity = 
+                                new org.springframework.http.HttpEntity<>(requestBody, headers);
+                            
+                            String url = trackingServiceBaseUrl + "/api/tracking/" + pedidoId;
+                            restTemplate.exchange(url, org.springframework.http.HttpMethod.POST, entity, String.class);
+                            sincronizados.add("Pedido " + pedidoId + ": Tracking creado con estado " + estadoMySQL);
+                        } else {
+                            // Actualizar tracking con estado de MySQL
+                            Map<String, String> requestBody = Map.of("estado", estadoMySQL);
+                            org.springframework.http.HttpEntity<Map<String, String>> entity = 
+                                new org.springframework.http.HttpEntity<>(requestBody, headers);
+                            
+                            String url = trackingServiceBaseUrl + "/api/tracking/" + pedidoId;
+                            restTemplate.exchange(url, org.springframework.http.HttpMethod.POST, entity, String.class);
+                            sincronizados.add("Pedido " + pedidoId + ": Estado sincronizado de " + estadoRedis + " a " + estadoMySQL);
+                        }
+                    }
+                } catch (Exception e) {
+                    errores.add("Error en pedido " + discrepancia.get("pedidoId") + ": " + e.getMessage());
+                }
+            }
+            
+            resultado.put("totalDiscrepancias", listaDiscrepancias.size());
+            resultado.put("sincronizados", sincronizados.size());
+            resultado.put("errores", errores.size());
+            resultado.put("detallesSincronizados", sincronizados);
+            resultado.put("detallesErrores", errores);
+            resultado.put("fechaSincronizacion", LocalDateTime.now());
+            
+            System.out.println("✅ Sincronización masiva completada: " + sincronizados.size() + " exitosos, " + errores.size() + " errores");
+            
+        } catch (Exception e) {
+            resultado.put("error", "Error durante la sincronización masiva: " + e.getMessage());
+            System.err.println("❌ Error en sincronización masiva: " + e.getMessage());
+        }
+        
+        return resultado;
+    }
+    
+    /**
+     * Reparar tracking faltante para un pedido específico
+     */
+    public Map<String, Object> repararTrackingPedido(Long pedidoId) {
+        Map<String, Object> resultado = new HashMap<>();
+        
+        try {
+            // Verificar que el pedido existe
+            Optional<Pedido> pedidoOpt = pedidoRepository.findById(pedidoId);
+            if (pedidoOpt.isEmpty()) {
+                throw new RuntimeException("Pedido no encontrado");
+            }
+            
+            Pedido pedido = pedidoOpt.get();
+            
+            // Obtener JWT token
+            String jwtToken = null;
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof Jwt) {
+                jwtToken = ((Jwt) principal).getTokenValue();
+            }
+            
+            if (jwtToken == null) {
+                resultado.put("error", "No se pudo obtener JWT token para reparación");
+                return resultado;
+            }
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            // Verificar si ya existe tracking
+            try {
+                String checkUrl = trackingServiceBaseUrl + "/api/tracking/" + pedidoId;
+                org.springframework.http.HttpEntity<String> checkEntity = new org.springframework.http.HttpEntity<>(headers);
+                restTemplate.exchange(checkUrl, org.springframework.http.HttpMethod.GET, checkEntity, String.class);
+                
+                // Si llegamos aquí, el tracking existe
+                resultado.put("message", "El tracking ya existe para este pedido");
+                resultado.put("pedidoId", pedidoId);
+                return resultado;
+                
+            } catch (RestClientException e) {
+                // Tracking no existe, proceder a crear
+            }
+            
+            // Crear tracking
+            Map<String, String> requestBody = Map.of("estado", pedido.getEstado());
+            org.springframework.http.HttpEntity<Map<String, String>> entity = 
+                new org.springframework.http.HttpEntity<>(requestBody, headers);
+            
+            String createUrl = trackingServiceBaseUrl + "/api/tracking/" + pedidoId;
+            restTemplate.exchange(createUrl, org.springframework.http.HttpMethod.POST, entity, String.class);
+            
+            resultado.put("message", "Tracking reparado exitosamente");
+            resultado.put("pedidoId", pedidoId);
+            resultado.put("estado", pedido.getEstado());
+            resultado.put("fechaReparacion", LocalDateTime.now());
+            
+            System.out.println("✅ Tracking reparado para pedido ID: " + pedidoId + " con estado: " + pedido.getEstado());
+            
+        } catch (RuntimeException e) {
+            throw e; // Re-throw para manejar en el controller
+        } catch (Exception e) {
+            resultado.put("error", "Error durante la reparación: " + e.getMessage());
+            System.err.println("❌ Error en reparación de tracking para pedido ID " + pedidoId + ": " + e.getMessage());
+        }
+        
+        return resultado;
+    }
+    
+    /**
+     * Helper method to extract estado from JSON response
+     */
+    private String extractEstadoFromJson(String jsonResponse) {
+        try {
+            // Simple JSON parsing for estado field
+            int estadoStart = jsonResponse.indexOf("\"estado\":\"") + 10;
+            int estadoEnd = jsonResponse.indexOf("\"", estadoStart);
+            if (estadoStart > 9 && estadoEnd > estadoStart) {
+                return jsonResponse.substring(estadoStart, estadoEnd);
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error parsing JSON response: " + e.getMessage());
+        }
+        return "UNKNOWN";
     }
 }

@@ -1,8 +1,13 @@
 package com.proyecto.trackingservice.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,16 +23,21 @@ public class TrackingService {
     private static final Logger logger = LoggerFactory.getLogger(TrackingService.class);
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
     
-    // Estados válidos para validación
+    @Value("${pedido.service.base.url:http://pedido-service:8083}")
+    private String pedidoServiceBaseUrl;
+    
+    // Estados válidos para validación (consistentes con frontend y pedido-service)
     private static final Set<String> ESTADOS_VALIDOS = Set.of(
-        "PENDIENTE", "PROCESANDO", "EN_TRANSITO", "ENTREGADO", "CANCELADO"
+        "PENDIENTE", "PROCESANDO", "ENVIADO", "ENTREGADO", "CANCELADO"
     );
 
     @Autowired
     public TrackingService(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = new ObjectMapper();
+        this.restTemplate = new RestTemplate();
     }
 
     /**
@@ -88,6 +98,9 @@ public class TrackingService {
             
             // Agregar al historial
             agregarAlHistorial(pedidoId, nuevoEstado, estadoAnterior);
+            
+            // Notificar al pedido-service para consistencia eventual
+            notificarPedidoService(pedidoId, nuevoEstado);
             
             // Log detallado
             if (estadoAnterior != null) {
@@ -192,6 +205,92 @@ public class TrackingService {
         } catch (JsonProcessingException e) {
             logger.error("❌ Error al agregar al historial para pedido ID: {} - {}", pedidoId, e.getMessage());
         }
+    }
+
+    /**
+     * Notifica al pedido-service sobre cambios de estado para consistencia eventual
+     */
+    private void notificarPedidoService(String pedidoId, String nuevoEstado) {
+        try {
+            // Obtener JWT del contexto de seguridad
+            String jwtToken = null;
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof Jwt) {
+                jwtToken = ((Jwt) principal).getTokenValue();
+            }
+            
+            if (jwtToken == null) {
+                logger.warn("⚠️ No se pudo obtener JWT token para sincronizar pedido ID: {}", pedidoId);
+                return;
+            }
+            
+            // Preparar headers y body
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            Map<String, String> requestBody = Map.of("estado", nuevoEstado);
+            org.springframework.http.HttpEntity<Map<String, String>> entity = 
+                new org.springframework.http.HttpEntity<>(requestBody, headers);
+            
+            // Llamar al endpoint de sincronización del pedido-service
+            String url = pedidoServiceBaseUrl + "/api/pedidos/" + pedidoId + "/sync-from-tracking";
+            restTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, String.class);
+            
+            logger.info("🔄 Pedido-service notificado exitosamente para pedido ID: {} con estado: {}", pedidoId, nuevoEstado);
+            
+        } catch (RestClientException e) {
+            logger.warn("⚠️ Error al notificar pedido-service para pedido ID: {} - {}. La sincronización será manejada posteriormente.", 
+                       pedidoId, e.getMessage());
+            // En una implementación más robusta, aquí se podría agregar a una cola de reintentos
+        } catch (Exception e) {
+            logger.error("❌ Error inesperado al notificar pedido-service para pedido ID: {} - {}", pedidoId, e.getMessage());
+        }
+    }
+
+    /**
+     * Método para sincronización manual en caso de fallos automáticos
+     */
+    public Map<String, Object> sincronizarManualmentePedido(String pedidoId, String jwtToken) {
+        Map<String, Object> resultado = new HashMap<>();
+        
+        try {
+            // Obtener estado actual del tracking
+            TrackingInfo tracking = getEstadoPedido(pedidoId);
+            if (tracking == null) {
+                resultado.put("error", "No existe tracking para el pedido " + pedidoId);
+                return resultado;
+            }
+            
+            // Preparar headers y body
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            Map<String, String> requestBody = Map.of("estado", tracking.getEstado());
+            org.springframework.http.HttpEntity<Map<String, String>> entity = 
+                new org.springframework.http.HttpEntity<>(requestBody, headers);
+            
+            // Llamar al endpoint de sincronización del pedido-service
+            String url = pedidoServiceBaseUrl + "/api/pedidos/" + pedidoId + "/sync-from-tracking";
+            restTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, String.class);
+            
+            resultado.put("message", "Sincronización manual exitosa");
+            resultado.put("pedidoId", pedidoId);
+            resultado.put("estado", tracking.getEstado());
+            resultado.put("fechaSincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            
+            logger.info("✅ Sincronización manual exitosa para pedido ID: {} con estado: {}", pedidoId, tracking.getEstado());
+            
+        } catch (RestClientException e) {
+            resultado.put("error", "Error de conectividad con pedido-service: " + e.getMessage());
+            logger.error("❌ Error en sincronización manual para pedido ID: {} - {}", pedidoId, e.getMessage());
+        } catch (Exception e) {
+            resultado.put("error", "Error inesperado en sincronización: " + e.getMessage());
+            logger.error("❌ Error inesperado en sincronización manual para pedido ID: {} - {}", pedidoId, e.getMessage());
+        }
+        
+        return resultado;
     }
 
     // Clases internas para estructurar los datos

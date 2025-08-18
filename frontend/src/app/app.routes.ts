@@ -6,6 +6,7 @@ import { DashboardComponent } from './dashboard.component';
 import { ClientesComponent } from './clientes.component';
 import { PedidosComponent } from './pedidos.component';
 import { TrackingComponent } from './tracking.component';
+import { AdminSyncComponent } from './admin-sync.component';
 import { AuthGuard } from './auth.guard';
 
 // Guards como funciones
@@ -34,5 +35,10 @@ export const routes: Routes = [
 		path: 'tracking', 
 		component: TrackingComponent,
 		canActivate: [authGuard]
+	},
+	{ 
+		path: 'admin-sync', 
+		component: AdminSyncComponent,
+		canActivate: [adminGuard]
 	},
 ];

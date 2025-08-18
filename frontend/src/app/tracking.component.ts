@@ -143,7 +143,7 @@ import { FormsModule } from '@angular/forms';
             >
               <option value="">Selecciona un estado</option>
               <option value="PENDIENTE">Pendiente</option>
-              <option value="EN_PROCESO">En Proceso</option>
+              <option value="PROCESANDO">Procesando</option>
               <option value="ENVIADO">Enviado</option>
               <option value="ENTREGADO">Entregado</option>
               <option value="CANCELADO">Cancelado</option>
@@ -190,7 +190,7 @@ import { FormsModule } from '@angular/forms';
     }
     
     .estado-pendiente { background-color: #fff3cd; color: #856404; border: 2px solid #ffc107; }
-    .estado-en_proceso { background-color: #d1ecf1; color: #0c5460; border: 2px solid #17a2b8; }
+    .estado-procesando { background-color: #d1ecf1; color: #0c5460; border: 2px solid #17a2b8; }
     .estado-enviado { background-color: #d4edda; color: #155724; border: 2px solid #28a745; }
     .estado-entregado { background-color: #d1e7dd; color: #0f5132; border: 2px solid #198754; }
     .estado-cancelado { background-color: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
@@ -449,7 +449,7 @@ export class TrackingComponent implements OnInit {
   getDescripcionEstado(estado: string): string {
     const descripciones: { [key: string]: string } = {
       'PENDIENTE': 'Tu pedido ha sido recibido y está siendo procesado',
-      'EN_PROCESO': 'Tu pedido está siendo preparado para envío',
+      'PROCESANDO': 'Tu pedido está siendo preparado para envío',
       'ENVIADO': 'Tu pedido ha sido enviado y está en camino',
       'ENTREGADO': 'Tu pedido ha sido entregado exitosamente',
       'CANCELADO': 'Este pedido ha sido cancelado'

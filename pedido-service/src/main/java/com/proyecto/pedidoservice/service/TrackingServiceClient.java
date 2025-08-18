@@ -27,8 +27,8 @@ public class TrackingServiceClient {
     
     private static final Logger logger = LoggerFactory.getLogger(TrackingServiceClient.class);
     
-    @Value("${tracking.service.url:http://tracking-service:8084/api/tracking/update}")
-    private String trackingServiceUrl;
+    @Value("${tracking.service.base.url:http://tracking-service:8084}")
+    private String trackingServiceBaseUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final TrackingQueueService queueService;
@@ -46,22 +46,22 @@ public class TrackingServiceClient {
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public void actualizarTracking(Pedido pedido, String jwtToken) {
-        logger.info("Intentando actualizar tracking para pedido ID: {} con URL: {}", pedido.getId(), trackingServiceUrl);
+        String trackingUrl = trackingServiceBaseUrl + "/api/tracking/" + pedido.getId();
+        logger.info("Intentando actualizar tracking para pedido ID: {} con URL: {}", pedido.getId(), trackingUrl);
         logger.debug("JWT Token length: {}", jwtToken != null ? jwtToken.length() : "null");
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(jwtToken);
         
-        // Crear payload específico para tracking-service
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("id", pedido.getId());
+        // Crear payload para el endpoint POST /{pedidoId}
+        Map<String, String> payload = new HashMap<>();
         payload.put("estado", pedido.getEstado());
         
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(payload, headers);
         
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(trackingServiceUrl, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(trackingUrl, entity, String.class);
             if (response.getStatusCode().is2xxSuccessful()) {
                 logger.info("✅ Tracking actualizado exitosamente para pedido ID: {}", pedido.getId());
             } else {

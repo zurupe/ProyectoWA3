@@ -73,7 +73,7 @@ import { PedidoRequest, PedidoResponse, EstadoPedido } from './models/pedido.mod
             <select id="filtroEstado" [(ngModel)]="filtroEstado" (ngModelChange)="aplicarFiltros()">
               <option value="">Todos los estados</option>
               <option value="PENDIENTE">Pendiente</option>
-              <option value="EN_PROCESO">En Proceso</option>
+              <option value="PROCESANDO">Procesando</option>
               <option value="ENVIADO">Enviado</option>
               <option value="ENTREGADO">Entregado</option>
               <option value="CANCELADO">Cancelado</option>
@@ -134,7 +134,7 @@ import { PedidoRequest, PedidoResponse, EstadoPedido } from './models/pedido.mod
                     class="estado-select"
                   >
                     <option value="PENDIENTE">Pendiente</option>
-                    <option value="EN_PROCESO">En Proceso</option>
+                    <option value="PROCESANDO">Procesando</option>
                     <option value="ENVIADO">Enviado</option>
                     <option value="ENTREGADO">Entregado</option>
                     <option value="CANCELADO">Cancelado</option>
@@ -170,7 +170,7 @@ import { PedidoRequest, PedidoResponse, EstadoPedido } from './models/pedido.mod
     }
     
     .status-pendiente { color: #ffc107; font-weight: bold; }
-    .status-en_proceso { color: #17a2b8; font-weight: bold; }
+    .status-procesando { color: #17a2b8; font-weight: bold; }
     .status-enviado { color: #007bff; font-weight: bold; }
     .status-entregado { color: #28a745; font-weight: bold; }
     .status-cancelado { color: #dc3545; font-weight: bold; }

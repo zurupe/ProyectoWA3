@@ -134,4 +134,63 @@ public class PedidoController {
                     .body("Error al comparar discrepancias: " + e.getMessage());
         }
     }
+
+    /**
+     * Sincronizar estado desde tracking-service hacia pedido
+     */
+    @PutMapping("/{id}/sync-from-tracking")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sincronizarDesdeTracking(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String nuevoEstado = request.get("estado");
+            if (nuevoEstado == null) {
+                return ResponseEntity.badRequest().body("Estado es requerido");
+            }
+            
+            Pedido actualizado = pedidoService.actualizarEstadoPedido(id, nuevoEstado);
+            return ResponseEntity.ok(Map.of(
+                "message", "Pedido sincronizado desde tracking", 
+                "pedidoId", id, 
+                "estado", nuevoEstado,
+                "pedido", actualizado
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al sincronizar pedido: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Sincronizar todos los pedidos inconsistentes
+     */
+    @PostMapping("/sync-all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sincronizarTodos() {
+        try {
+            Map<String, Object> resultado = pedidoService.sincronizarTodosLosPedidos();
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al sincronizar todos los pedidos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Reparar tracking faltante para un pedido específico
+     */
+    @PostMapping("/{id}/repair-tracking")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> repararTracking(@PathVariable Long id) {
+        try {
+            Map<String, Object> resultado = pedidoService.repararTrackingPedido(id);
+            return ResponseEntity.ok(resultado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al reparar tracking: " + e.getMessage());
+        }
+    }
 }

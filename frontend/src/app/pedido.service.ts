@@ -51,4 +51,32 @@ export class PedidoService {
     const params = new HttpParams().set('estado', estado);
     return this.http.put<PedidoResponse>(`${this.apiUrl}/${id}/estado`, null, { params });
   }
+
+  /**
+   * Comparar estados entre MySQL y Redis
+   */
+  compararEstados(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/compare-tracking`);
+  }
+
+  /**
+   * Sincronizar todos los pedidos
+   */
+  sincronizarTodos(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sync-all`, {});
+  }
+
+  /**
+   * Reparar tracking de un pedido específico
+   */
+  repararTracking(id: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${id}/repair-tracking`, {});
+  }
+
+  /**
+   * Sincronizar desde tracking service
+   */
+  sincronizarDesdeTracking(id: number): Observable<PedidoResponse> {
+    return this.http.put<PedidoResponse>(`${this.apiUrl}/${id}/sync-from-tracking`, {});
+  }
 }

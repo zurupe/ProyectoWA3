@@ -112,6 +112,69 @@ public class TrackingController {
     }
 
     /**
+     * Endpoint para sincronizar un pedido específico (cuando no existe tracking)
+     */
+    @PostMapping("/sync/{pedidoId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sincronizarPedido(@PathVariable String pedidoId, @RequestBody EstadoRequest request, @AuthenticationPrincipal Jwt jwt) {
+        try {
+            trackingService.actualizarEstadoPedido(pedidoId, request.getEstado());
+            logger.info("🔄 Tracking sincronizado para pedido ID: {} con estado: {} por usuario: {}", 
+                       pedidoId, request.getEstado(), jwt.getSubject());
+            return ResponseEntity.ok(Map.of("message", "Tracking sincronizado correctamente", "pedidoId", pedidoId, "estado", request.getEstado()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Estado inválido: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("❌ Error al sincronizar tracking para pedido ID: {} - {}", pedidoId, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al sincronizar tracking");
+        }
+    }
+
+    /**
+     * Endpoint para sincronizar desde pedido-service hacia tracking
+     */
+    @PutMapping("/sync/{pedidoId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sincronizarDesdePedido(@PathVariable String pedidoId, @RequestBody EstadoRequest request, @AuthenticationPrincipal Jwt jwt) {
+        try {
+            trackingService.actualizarEstadoPedido(pedidoId, request.getEstado());
+            logger.info("🔄 Tracking sincronizado desde pedido-service para pedido ID: {} con estado: {} por usuario: {}", 
+                       pedidoId, request.getEstado(), jwt.getSubject());
+            return ResponseEntity.ok(Map.of("message", "Tracking sincronizado desde pedido", "pedidoId", pedidoId, "estado", request.getEstado()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Estado inválido: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("❌ Error al sincronizar tracking desde pedido ID: {} - {}", pedidoId, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al sincronizar tracking");
+        }
+    }
+
+    /**
+     * Endpoint para crear tracking desde datos de pedido existente
+     */
+    @PostMapping("/create-from-pedido/{pedidoId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> crearTrackingDesdePedido(@PathVariable String pedidoId, @RequestBody EstadoRequest request, @AuthenticationPrincipal Jwt jwt) {
+        try {
+            // Primero verificar si ya existe tracking
+            TrackingService.TrackingInfo existente = trackingService.getEstadoPedido(pedidoId);
+            if (existente != null) {
+                return ResponseEntity.badRequest().body("Ya existe tracking para el pedido " + pedidoId);
+            }
+            
+            trackingService.actualizarEstadoPedido(pedidoId, request.getEstado());
+            logger.info("✅ Tracking creado desde pedido para pedido ID: {} con estado: {} por usuario: {}", 
+                       pedidoId, request.getEstado(), jwt.getSubject());
+            return ResponseEntity.ok(Map.of("message", "Tracking creado desde pedido", "pedidoId", pedidoId, "estado", request.getEstado()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Estado inválido: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("❌ Error al crear tracking desde pedido ID: {} - {}", pedidoId, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al crear tracking desde pedido");
+        }
+    }
+
+    /**
      * Health check específico para tracking
      */
     @GetMapping("/health")
@@ -126,6 +189,27 @@ public class TrackingController {
         } catch (Exception e) {
             logger.error("❌ Error en health check - {}", e.getMessage());
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Sincronización manual hacia pedido-service
+     */
+    @PostMapping("/sync-to-pedido/{pedidoId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> sincronizarHaciaPedido(@PathVariable String pedidoId, @AuthenticationPrincipal Jwt jwt) {
+        try {
+            String jwtToken = jwt.getTokenValue();
+            Map<String, Object> resultado = trackingService.sincronizarManualmentePedido(pedidoId, jwtToken);
+            
+            if (resultado.containsKey("error")) {
+                return ResponseEntity.badRequest().body(resultado);
+            }
+            
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            logger.error("❌ Error en sincronización manual hacia pedido para ID: {} - {}", pedidoId, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error en sincronización manual");
         }
     }
 
